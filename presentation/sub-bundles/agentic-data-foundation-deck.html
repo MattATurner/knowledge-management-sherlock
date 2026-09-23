@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agentic Data Foundation — Executive Brief</title>
+<style>
+:root{
+  --g-blue:#4285F4; --g-red:#EA4335; --g-yellow:#FBBC04; --g-green:#34A853;
+  --g-blue-700:#1a73e8; --g-blue-050:#e8f0fe;
+  --g-teal:#12b5cb; --g-purple:#a142f4;
+  --ink:#202124; --ink-2:#5f6368; --ink-3:#80868b;
+  --border:#dadce0; --surface:#f8f9fa; --bg:#ffffff;
+  --shadow:0 1px 2px rgba(60,64,67,.08), 0 4px 14px rgba(60,64,67,.10);
+  --font:"Google Sans","Product Sans",Roboto,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+body.dark{
+  --ink:#e8eaed; --ink-2:#9aa0a6; --ink-3:#80868b;
+  --border:#3c4043; --surface:#202124; --bg:#131314;
+  --g-blue-050:#1f2a3d;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 18px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  -webkit-font-smoothing:antialiased; transition:background .3s,color .3s;
+}
+#stage{position:relative; width:1280px; height:720px; transform-origin:50% 50%; flex:none}
+
+/* Slide 1 is visible by default, so the deck is never blank even if
+   scripting is unavailable. Once JS boots, .active takes over. */
+.slide{
+  position:absolute; inset:0; background:var(--bg);
+  padding:56px 72px 64px; display:none; flex-direction:column;
+  opacity:0; transition:opacity .35s ease;
+}
+#s1{display:flex; opacity:1}
+.js #s1:not(.active){display:none; opacity:0}
+.slide.active{display:flex; opacity:1}
+
+/* ---- typography ---- */
+.eyebrow{font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); font-weight:600}
+h1{font-size:60px; line-height:1.04; font-weight:700; letter-spacing:-.022em}
+h2{font-size:40px; line-height:1.1; font-weight:700; letter-spacing:-.018em}
+.sub{font-size:19px; line-height:1.5; color:var(--ink-2); font-weight:400}
+.hl{color:var(--g-blue-700)}
+.slide-head{margin-bottom:26px}
+.slide-head h2{margin-top:8px}
+.slide-head .sub{margin-top:10px; max-width:900px}
+
+/* ---- chrome ---- */
+#chrome{position:absolute; left:0; right:0; bottom:0; height:52px;
+  display:flex; align-items:center; gap:14px; padding:0 72px; pointer-events:none}
+#dots{display:flex; gap:8px; pointer-events:auto}
+.dot{width:26px; height:4px; border-radius:2px; background:var(--border); cursor:pointer; transition:background .25s,width .25s}
+.dot.on{background:var(--g-blue-700); width:38px}
+#chrome .spacer{flex:1}
+.meta{font-size:12px; color:var(--ink-3); letter-spacing:.04em}
+#themeBtn,.navBtn{pointer-events:auto; border:1px solid var(--border); background:transparent; color:var(--ink-2);
+  font-family:var(--font); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  padding:5px 12px; border-radius:99px; cursor:pointer}
+#themeBtn:hover,.navBtn:hover{border-color:var(--g-blue-700); color:var(--g-blue-700)}
+/* On-screen arrows: inside an iframe (Google Sites) the deck has no keyboard
+   focus until clicked, so arrow keys alone are not enough. */
+.navBtn{font-size:15px; line-height:1; padding:3px 11px 5px}
+body.export #chrome button{display:none}
+.brandbar{position:absolute; top:0; left:0; height:5px; width:100%; display:flex}
+.brandbar i{flex:1}
+.brandbar i:nth-child(1){background:var(--g-blue)}
+.brandbar i:nth-child(2){background:var(--g-red)}
+.brandbar i:nth-child(3){background:var(--g-yellow)}
+.brandbar i:nth-child(4){background:var(--g-green)}
+
+/* ---- generic ---- */
+.body{flex:1; display:flex; min-height:0}
+#s2 .body, #s4 .body{justify-content:space-between}
+#s5 .outcomes, #s5 .body > div:last-child{justify-content:space-between}
+.card{background:var(--bg); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow)}
+.pill{display:inline-block; font-size:12px; font-weight:600; letter-spacing:.05em;
+  text-transform:uppercase; padding:4px 11px; border-radius:99px;
+  background:var(--g-blue-050); color:var(--g-blue-700)}
+
+/* ---- slide 1 ---- */
+#s1{padding-top:78px}
+#s1 .grid{display:grid; grid-template-columns:1.02fr 1fr; gap:48px; align-items:center; flex:1}
+#s1 h1{margin-top:18px}
+#s1 .lede{margin-top:22px; font-size:20px; line-height:1.55; color:var(--ink-2); max-width:560px}
+#s1 .lede b{color:var(--ink); font-weight:600}
+#s1 .stats{display:flex; gap:38px; margin-top:34px}
+#s1 .stat .n{font-size:36px; font-weight:700; letter-spacing:-.02em}
+#s1 .stat .l{font-size:13px; color:var(--ink-2); margin-top:2px; line-height:1.35}
+
+/* ---- slide 2 ---- */
+.gaps{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:4px}
+.gap{border:1px solid var(--border); border-radius:14px; padding:18px 16px 16px; background:var(--bg);
+  display:flex; flex-direction:column; position:relative; overflow:hidden; min-height:230px}
+.gap .bar{position:absolute; top:0; left:0; height:4px; width:0; transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.gap .ic{width:34px;height:34px;margin-bottom:12px}
+.gap h3{font-size:17px; font-weight:700; letter-spacing:-.01em}
+.gap p{font-size:13px; line-height:1.42; color:var(--ink-2); margin-top:8px}
+.gap .cost{margin-top:auto; padding-top:12px; font-size:12.5px; line-height:1.35; font-weight:600; color:var(--ink)}
+.gap .cost span{display:block; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600; margin-bottom:4px}
+
+/* ---- slide 3 ---- */
+#s3 .body{gap:34px; align-items:stretch}
+.jobs{width:330px; display:flex; flex-direction:column; gap:12px; padding-top:2px}
+.job{border:1px solid var(--border); border-left:4px solid var(--g-blue); border-radius:12px;
+  padding:14px 16px; background:var(--bg); cursor:default; transition:box-shadow .25s, transform .25s}
+.job:hover{box-shadow:var(--shadow); transform:translateX(3px)}
+.job h3{font-size:18px; font-weight:700; display:flex; align-items:center; gap:9px}
+.job h3 em{font-style:normal; font-size:11px; font-weight:700; color:#fff; background:var(--g-blue);
+  width:19px; height:19px; border-radius:50%; display:grid; place-items:center}
+.job p{font-size:13.5px; line-height:1.45; color:var(--ink-2); margin-top:6px}
+.note{font-size:11.5px; color:var(--ink-3); line-height:1.5; margin-top:12px}
+
+/* ---- slide 4 ---- */
+#s4 .body{gap:0}
+.diffs{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; width:100%}
+.diff{border:1px solid var(--border); border-radius:14px; padding:16px 15px; background:var(--bg);
+  display:flex; flex-direction:column; min-height:250px}
+.diff .num{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.1em}
+.diff h3{font-size:16.5px; font-weight:700; line-height:1.22; margin-top:8px; letter-spacing:-.01em}
+.diff p{font-size:12.5px; line-height:1.45; color:var(--ink-2); margin-top:9px}
+.diff .closes{margin-top:auto; padding-top:12px; display:flex; align-items:center; gap:7px;
+  font-size:12px; font-weight:600}
+.diff .closes .tick{width:15px;height:15px;flex:none}
+.strike{text-decoration:line-through; text-decoration-thickness:1.5px}
+
+/* ---- slide 5 ---- */
+#s5 .body{gap:30px}
+.outcomes{width:430px; display:flex; flex-direction:column; gap:14px}
+.oc{border:1px solid var(--border); border-radius:14px; padding:16px 18px; background:var(--bg)}
+.oc .n{font-size:34px; font-weight:700; letter-spacing:-.025em; line-height:1}
+.oc h3{font-size:15px; font-weight:700; margin-top:7px}
+.oc p{font-size:12.5px; line-height:1.45; color:var(--ink-2); margin-top:4px}
+.cta{margin-top:14px; border-radius:14px; padding:18px 22px; background:var(--g-blue-050);
+  border:1px solid transparent; display:flex; gap:20px; align-items:center}
+.cta .big{font-size:15.5px; font-weight:700; line-height:1.35}
+.cta .small{font-size:12.5px; color:var(--ink-2); line-height:1.45; margin-top:3px}
+.cta .step{flex:none; width:62px; height:62px; border-radius:50%; background:var(--g-blue-700);
+  color:#fff; display:grid; place-items:center; text-align:center; font-size:11px;
+  font-weight:700; line-height:1.15; letter-spacing:.02em}
+</style>
+  <meta name="tags" content="BigQuery, Knowledge Catalog, Hybrid Search, GraphRAG, Sherlock">
+  <meta name="deck-role" content="sub-bundle">
+  <meta name="catalog-visibility" content="hidden">
+  <meta name="parent-deck" content="knowledge-management-sherlock">
+  <meta name="git-commit" content="3e0d78b">
+  <meta name="published-at" content="2026-09-23T06:09:54Z">
+</head>
+<body>
+<script>
+document.documentElement.className='js';
+/* Never fail silently to a white screen: surface any script error on the page. */
+window.onerror=function(m,s,l,c){
+  var d=document.getElementById('errbox');
+  if(!d){ d=document.createElement('div'); d.id='errbox'; document.body.appendChild(d); }
+  d.textContent='Deck script error: '+m+' (line '+l+')';
+  d.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:99;padding:10px 14px;'
+    +'font:13px system-ui;background:#fce8e6;color:#c5221f;border:1px solid #EA4335;border-radius:8px';
+  document.documentElement.className=''; /* fall back to the static first slide */
+};
+</script>
+<div id="stage">
+
+<!-- ================= SLIDE 1 ================= -->
+<section class="slide" id="s1">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="grid">
+    <div>
+      <span class="pill">Solution Brief</span>
+      <h1>Your enterprise<br>has no shared<br><span class="hl">business brain</span></h1>
+      <p class="lede">High-value decisions need the live numbers <b>and</b> the rules that
+        govern them. The two sit apart, with no shared model of what anything means or how
+        it relates — so agents retrieve text that <i>looks</i> relevant instead of facts
+        that are correct.</p>
+      <div class="stats">
+        <div class="stat"><div class="n" style="color:var(--g-red)">80–90%</div>
+          <div class="l">of enterprise knowledge is<br>unstructured</div></div>
+        <div class="stat"><div class="n" style="color:var(--g-yellow)">2–3</div>
+          <div class="l">clouds hold the answer to<br>a single question</div></div>
+        <div class="stat"><div class="n" style="color:var(--g-green)">&gt;90%</div>
+          <div class="l">groundedness once the<br>brain is in place</div></div>
+      </div>
+    </div>
+    <div><canvas id="c1" width="1120" height="1000"></canvas></div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 2 ================= -->
+<section class="slide" id="s2">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">The challenge</span>
+    <h2>Five reasons the brain never formed</h2>
+    <p class="sub">Each gap alone is enough to keep an agent out of production. Most enterprises have all five —
+      and the third one is the brain itself.</p>
+  </div>
+  <div class="body" style="flex-direction:column">
+    <div class="gaps" id="gaps"></div>
+    <div style="margin-top:22px; display:flex; gap:16px; align-items:center">
+      <canvas id="c2" width="1160" height="150" style="width:1160px;height:75px"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 3 ================= -->
+<section class="slide" id="s3">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">The solution</span>
+    <h2>We build the brain — inside a governed knowledge layer</h2>
+    <p class="sub">Not another search box. Understand feeds it, Connect forms it, Serve puts it to work —
+      reading content you already have, across platforms you already run. Nothing gets migrated.</p>
+  </div>
+  <div class="body">
+    <div class="jobs">
+      <div class="job" style="border-left-color:var(--g-blue)">
+        <h3><em style="background:var(--g-blue)">1</em> Understand</h3>
+        <p>Read documents, calls and images properly — so tables, hierarchy and meaning survive extraction.</p>
+      </div>
+      <div class="job" style="border-left-color:var(--g-yellow)">
+        <h3><em style="background:var(--g-yellow);color:#3c2f00">2</em> Connect — the business brain</h3>
+        <p>Resolve the six versions of a customer into one, and record how everything relates.
+          The first domain establishes this model; every domain after extends it.</p>
+      </div>
+      <div class="job" style="border-left-color:var(--g-green)">
+        <h3><em style="background:var(--g-green)">3</em> Serve</h3>
+        <p>Answer with the right context, the caller's own permissions, and a citation anyone can check.</p>
+      </div>
+      <p class="note">Underlying Google Cloud capabilities: borderless lakehouse · <b>AI.PARSE_DOCUMENT</b> layout-aware understanding &amp; autonomous embeddings ·
+        entity resolution · <b>BigQuery Graph</b> (<code>GRAPH_TABLE</code>) · <b>BigQuery Hybrid Search</b> (<code>AI.SEARCH</code> vector + lexical RRF) · <b>BigQuery Knowledge Catalog</b> governed business glossary.</p>
+    </div>
+    <div style="flex:1"><canvas id="c3" width="1560" height="880"></canvas></div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 4 ================= -->
+<section class="slide" id="s4">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">Why this approach wins</span>
+    <h2>Every gap closed — and the brain is yours</h2>
+    <p class="sub">One governed layer over your existing estate, building an asset you own and keep.
+      The alternative is a consolidation programme that finishes years after the decisions were needed.</p>
+  </div>
+  <div class="body" style="flex-direction:column">
+    <div class="diffs">
+      <div class="diff">
+        <div class="num">01</div><h3>Reach, not migration</h3>
+        <p>Query across clouds and platforms in place. Your prior investments keep earning.</p>
+        <div class="closes" style="color:var(--g-blue)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unreachable</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">02</div><h3>Layout-aware understanding</h3>
+        <p>Tables, clauses and hierarchy preserved — the agent knows what a fragment belongs to.</p>
+        <div class="closes" style="color:var(--g-red)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unreadable</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">03</div><h3>Graph + vector together</h3>
+        <p>Relationships answer "what's affected?". Vectors return the verbatim clause to cite.</p>
+        <div class="closes" style="color:var(--g-yellow)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unconnected</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">04</div><h3>Permissions at retrieval</h3>
+        <p>The caller's entitlements are enforced as the answer is built, not bolted on after.</p>
+        <div class="closes" style="color:var(--g-green)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Ungoverned</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">05</div><h3>Meaning, owner, freshness</h3>
+        <p>Catalogued context tells the agent which source is right — and when it isn't current.</p>
+        <div class="closes" style="color:var(--g-purple)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unexplained</span></div>
+      </div>
+    </div>
+    <div style="margin-top:24px; display:flex; align-items:center; gap:26px">
+      <div style="font-size:14px; font-weight:700; width:150px; line-height:1.3">Built once,<br>then extended<br>
+        <span style="font-weight:400; color:var(--ink-2); font-size:12.5px">the business brain compounds</span></div>
+      <canvas id="c4" width="1900" height="284" style="width:950px;height:142px"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 5 ================= -->
+<section class="slide" id="s5">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">Outcomes &amp; next step</span>
+    <h2>Watch the brain develop — and the agents get right answers</h2>
+  </div>
+  <div class="body">
+    <div class="outcomes">
+      <div class="oc" style="border-left:4px solid var(--g-blue)">
+        <div class="n" style="color:var(--g-blue-700)"><span data-count="90" data-suffix="%+">0%</span></div>
+        <h3>Groundedness, measured</h3>
+        <p>Agent answers scored against a golden question set you agree up front — not a demo.</p>
+      </div>
+      <div class="oc" style="border-left:4px solid var(--g-green)">
+        <div class="n" style="color:var(--g-green)">Days <span style="color:var(--ink-3)">&rarr;</span> Minutes</div>
+        <h3>Time to a defensible answer</h3>
+        <p>Questions that spanned a contract, a customer record and a call transcript now resolve in one pass.</p>
+      </div>
+      <div class="oc" style="border-left:4px solid var(--g-yellow)">
+        <div class="n" style="color:var(--ink)"><span data-count="100" data-suffix="%">0%</span> <span style="font-size:20px;font-weight:600;color:var(--ink-2)">of answers cited</span></div>
+        <h3>Auditable by design</h3>
+        <p>Every claim traces to the source clause, under the caller's own permissions.</p>
+      </div>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column">
+      <canvas id="c5" width="1400" height="600"></canvas>
+      <div class="cta">
+        <div class="step">2-HOUR<br>WORKSHOP</div>
+        <div>
+          <div class="big">Bring your top 20 business questions.</div>
+          <div class="small">We map which ones your estate can answer today, where the gaps are, and which
+            platforms hold the answers — then an optional six-week proof of concept on one domain,
+            with success metrics agreed before we start.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="chrome">
+  <div id="dots"></div>
+  <div class="spacer"></div>
+  <span class="meta" id="meta">Agentic Data Foundation · v1.2</span>
+  <button class="navBtn" id="prevBtn" title="Previous slide">&#8249;</button>
+  <button class="navBtn" id="nextBtn" title="Next slide">&#8250;</button>
+  <button id="themeBtn">Dark</button>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var FONT = '"Google Sans","Product Sans",Roboto,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif';
+function cv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim() || '#000'; }
+function setup(id,w,h){
+  var c=document.getElementById(id), d=Math.min(window.devicePixelRatio||1,2);
+  c.style.width=w+'px'; c.style.height=h+'px'; c.width=w*d; c.height=h*d;
+  var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,w,h);
+  return x;
+}
+function rr(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r);
+  x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
+function txt(x,s,a,b,size,weight,color,align){
+  x.font=(weight||400)+' '+size+'px '+FONT; x.fillStyle=color; x.textAlign=align||'left';
+  x.textBaseline='middle'; x.fillText(s,a,b);
+}
+function ease(t){ return t<0 ? 0 : t>1 ? 1 : 1-Math.pow(1-t,3); }
+
+/* ---------------------------------------------------------------
+   THE MOTIF. One glyph, carried through all five slides: the
+   business brain as a property graph. `level` 0..1 is how much of
+   it is connected; `scatter` 0..1 is how far the nodes drift from
+   their true positions. Slide 1 draws it at 0/1 (no brain at all),
+   slide 5 at 1/0 (a brain that reasons).
+   --------------------------------------------------------------- */
+var BRAIN_N=[[0,-1],[0.87,-0.5],[0.87,0.5],[0,1],[-0.87,0.5],[-0.87,-0.5]];
+var BRAIN_E=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,3],[1,4],[2,5]];
+function brain(x,cx,cy,r,level,scatter,color,dashed){
+  var pts=[],i;
+  for(i=0;i<BRAIN_N.length;i++){
+    var n=BRAIN_N[i], k=1+scatter*0.42*(((i*7)%3)-1);
+    pts.push([cx+n[0]*r*k, cy+n[1]*r*k]);
+  }
+  x.save();
+  var ne=Math.round(level*BRAIN_E.length);
+  x.strokeStyle=color; x.lineWidth=1.3;
+  if(dashed) x.setLineDash([3,3]);
+  for(i=0;i<ne;i++){
+    var a=pts[BRAIN_E[i][0]], b=pts[BRAIN_E[i][1]];
+    x.globalAlpha=0.5; x.beginPath(); x.moveTo(a[0],a[1]); x.lineTo(b[0],b[1]); x.stroke();
+  }
+  x.setLineDash([]); x.globalAlpha=1;
+  for(i=0;i<pts.length;i++){
+    x.fillStyle=color; x.beginPath(); x.arc(pts[i][0],pts[i][1],r>22?3.2:2.6,0,7); x.fill();
+  }
+  x.restore();
+}
+
+/* ---------- SLIDE 2 : gap cards ---------- */
+var GAPS=[
+ {k:'Unreachable', c:'--g-blue',   d:'Facts sit in one platform, documents in another — across two or three clouds.',
+  cost:'Answers are right but incomplete', ic:'M4 7h7v5H4zM13 12h7v5h-7zM7.5 12v5h5.5'},
+ {k:'Unreadable',  c:'--g-red',    d:'80–90% of knowledge is unstructured; standard extraction destroys tables and hierarchy.',
+  cost:'Fragments quoted with no context', ic:'M5 4h9l5 5v11H5zM14 4v5h5M8 13h8M8 16.5h5'},
+ {k:'Unconnected', c:'--g-yellow', d:'The same customer appears under six names, with no record of how anything relates.',
+  cost:'Multi-hop questions unanswerable', tag:'this gap is the brain',
+  ic:'M6 6.5a2 2 0 1 0 .01 0M18 6.5a2 2 0 1 0 .01 0M12 17.5a2 2 0 1 0 .01 0M7.6 8.2l3 7.6M16.4 8.2l-3 7.6'},
+ {k:'Ungoverned',  c:'--g-green',  d:'Permissions aren\u2019t enforced at the point of retrieval.',
+  cost:'Can\u2019t go live on real data', ic:'M12 3.5l7 3v5c0 4.4-3 8-7 9-4-1-7-4.6-7-9v-5zM9 12l2 2 4-4'},
+ {k:'Unexplained', c:'--g-purple', d:'No agreed meaning, ownership or freshness for the underlying data.',
+  cost:'Wrong source, stated with certainty', ic:'M12 3.5a8.5 8.5 0 1 0 .01 0M12 11v6M12 7.6v.6'}
+];
+(function(){
+  var h='';
+  for(var i=0;i<GAPS.length;i++){ var g=GAPS[i];
+    h+='<div class="gap"><div class="bar" style="background:var('+g.c+')"></div>'
+      +'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var('+g.c+')" stroke-width="1.7" '
+      +'stroke-linecap="round" stroke-linejoin="round"><path d="'+g.ic+'"/></svg>'
+      +'<h3>'+g.k+'</h3>'
+      +(g.tag?'<div style="margin-top:7px;display:inline-block;align-self:flex-start;'
+        +'font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;'
+        +'padding:3px 8px;border-radius:99px;background:#fef7e0;color:#b06000">'+g.tag+'</div>':'')
+      +'<p>'+g.d+'</p>'
+      +'<div class="cost"><span>What it costs you</span>'+g.cost+'</div></div>';
+  }
+  document.getElementById('gaps').innerHTML=h;
+})();
+
+/* ---------- SLIDE 1 : the context gap ---------- */
+function draw1(t){
+  var W=500,H=500,x=setup('c1',W,H);
+  var blue=cv('--g-blue-700'), red=cv('--g-red'), ink=cv('--ink'), ink2=cv('--ink-2'),
+      bd=cv('--border'), sur=cv('--surface'), yel=cv('--g-yellow'), grn=cv('--g-green');
+  var p=ease(t/900);
+
+  /* agent node */
+  var ax=W/2, ay=56;
+  x.save(); x.globalAlpha=Math.min(1,p*1.4);
+  x.fillStyle=cv('--g-blue-050'); x.strokeStyle=blue; x.lineWidth=1.6;
+  rr(x,ax-96,ay-30,192,60,30); x.fill(); x.stroke();
+  txt(x,'AI agent',ax,ay,17,700,blue,'center');
+  x.restore();
+
+  /* two towers */
+  var tw=150, th=214, ty=132, gapx=104;
+  var lx=ax-gapx/2-tw, rx=ax+gapx/2;
+  function tower(px,label,sub,accent,rows){
+    x.fillStyle=sur; x.strokeStyle=bd; x.lineWidth=1.4;
+    rr(x,px,ty,tw,th,14); x.fill(); x.stroke();
+    x.fillStyle=accent; rr(x,px,ty,tw,4,2); x.fill();
+    txt(x,label,px+tw/2,ty+26,14.5,700,ink,'center');
+    txt(x,sub,px+tw/2,ty+45,11.5,400,ink2,'center');
+    for(var i=0;i<rows.length;i++){
+      var by=ty+62+i*30, a=ease((t-260-i*90)/620);
+      x.save(); x.globalAlpha=a;
+      x.fillStyle=cv('--bg'); x.strokeStyle=bd; x.lineWidth=1;
+      rr(x,px+14,by,tw-28,23,6); x.fill(); x.stroke();
+      x.fillStyle=accent; rr(x,px+14,by,3,23,1.5); x.fill();
+      txt(x,rows[i],px+25,by+12,11,500,ink2,'left');
+      x.restore();
+    }
+  }
+  tower(lx,'Operational data','the live numbers',blue,['Databases','Warehouses','Transactions','Telemetry']);
+  tower(rx,'Business knowledge','the rules that bind',yel,['Contracts','Manuals','Tickets','Call transcripts']);
+
+  /* Where the brain should be — and isn't. This is the hole the rest of
+     the deck fills in: the same glyph returns on slides 3, 4 and 5. */
+  var cxm=ax, cyb=ty+th/2-16, ga=ease((t-700)/700);
+  x.save(); x.globalAlpha=ga*0.85;
+  x.strokeStyle=red; x.lineWidth=1.4; x.setLineDash([4,5]);
+  x.beginPath(); x.arc(cxm,cyb,42,0,7); x.stroke();
+  x.restore();
+  x.save(); x.globalAlpha=ga;
+  brain(x,cxm,cyb,27,0,1,red,true);            /* level 0 — nothing connects */
+  txt(x,'NO SHARED',cxm,cyb+56,10.5,700,red,'center');
+  txt(x,'BUSINESS BRAIN',cxm,cyb+69,10.5,700,red,'center');
+  x.restore();
+
+  /* broken links up to the agent */
+  x.save(); x.globalAlpha=.9; x.lineWidth=2; x.setLineDash([6,7]);
+  [[lx+tw/2,blue],[rx+tw/2,yel]].forEach(function(pr){
+    x.strokeStyle=pr[1];
+    x.beginPath(); x.moveTo(pr[0],ty-6);
+    x.quadraticCurveTo(pr[0],ay+58,ax+(pr[0]<ax?-40:40),ay+34);
+    x.stroke();
+  });
+  x.restore();
+
+  /* failure marks */
+  var fp=ease((t-1000)/500);
+  x.save(); x.globalAlpha=fp; x.strokeStyle=red; x.lineWidth=2.6; x.lineCap='round';
+  [[lx+tw/2+14,ay+50],[rx+tw/2-14,ay+50]].forEach(function(q){
+    x.beginPath(); x.moveTo(q[0]-6,q[1]-6); x.lineTo(q[0]+6,q[1]+6);
+    x.moveTo(q[0]+6,q[1]-6); x.lineTo(q[0]-6,q[1]+6); x.stroke();
+  });
+  x.restore();
+
+  /* footer verdict */
+  var fy=ty+th+66;
+  x.save(); x.globalAlpha=ease((t-1200)/600);
+  x.fillStyle=sur; rr(x,20,fy-24,W-40,52,12); x.fill();
+  txt(x,'The bottleneck is no longer model capability.',W/2,fy-6,13.5,700,ink,'center');
+  txt(x,'It is the brain that was never built.',W/2,fy+13,13.5,400,ink2,'center');
+  x.restore();
+  return t<1900;
+}
+
+/* ---------- SLIDE 2 : where knowledge lives ---------- */
+function draw2(t){
+  var W=1160,H=75,x=setup('c2',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), bd=cv('--border');
+  var p=ease(t/900), y=24, h=26, unstr=0.85;
+  var uw=(W-2)*unstr*p, sw=(W-2)*(1-unstr)*p;
+  x.fillStyle=cv('--g-red'); rr(x,0,y,Math.max(uw,1),h,6); x.fill();
+  x.fillStyle=cv('--g-blue'); rr(x,uw+4,y,Math.max(sw-4,1),h,6); x.fill();
+  x.save(); x.globalAlpha=p;
+  txt(x,'80–90% unstructured — documents, contracts, tickets, calls, images',12,y+h/2,13,700,'#fff','left');
+  txt(x,'Structured',W-6,y+h/2,12,700,'#fff','right');
+  txt(x,'WHERE ENTERPRISE KNOWLEDGE LIVES',0,10,10.5,700,ink2,'left');
+  txt(x,'Agents are wired to the blue slice — the brain has to be built from the red',W,10,10.5,400,ink2,'right');
+  x.restore();
+  x.strokeStyle=bd; x.lineWidth=1; x.beginPath(); x.moveTo(0,H-8); x.lineTo(W,H-8); x.stroke();
+  return t<1000;
+}
+
+/* ---------- SLIDE 3 : the layered stack ---------- */
+function draw3(t){
+  var W=780,H=440,x=setup('c3',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), bd=cv('--border'), sur=cv('--surface'),
+      blue=cv('--g-blue'), blue7=cv('--g-blue-700'), yel=cv('--g-yellow'),
+      grn=cv('--g-green'), bg=cv('--bg');
+
+  /* consumers (top) */
+  var a1=ease(t/500);
+  x.save(); x.globalAlpha=a1;
+  x.fillStyle=cv('--g-blue-050'); x.strokeStyle=blue7; x.lineWidth=1.6;
+  rr(x,0,0,W,62,13); x.fill(); x.stroke();
+  txt(x,'Agents, assistants and the people who ask the questions',W/2,23,15,700,blue7,'center');
+  txt(x,'“Which contracts are affected if this supplier misses SLA?” — one question, three systems',W/2,43,11.5,400,ink2,'center');
+  x.restore();
+
+  /* knowledge layer */
+  var ly=112, lh=212, a2=ease((t-250)/600);
+  x.save(); x.globalAlpha=a2;
+  x.fillStyle=sur; x.strokeStyle=blue7; x.lineWidth=1.8;
+  rr(x,0,ly,W,lh,15); x.fill(); x.stroke();
+  txt(x,'GOVERNED KNOWLEDGE LAYER',16,ly+18,10.5,700,blue7,'left');
+  txt(x,'permissions enforced at retrieval · every answer cited',W-16,ly+18,10.5,400,ink2,'right');
+  var rows=[
+    ['Serve','Right context, right permissions, a citation you can check',grn,'hybrid graph + vector retrieval'],
+    ['Connect — the business brain','One customer, not six — and how everything relates',yel,'ontology · knowledge graph'],
+    ['Understand','Structure, tables and meaning survive extraction',blue,'layout-aware parsing · embeddings']
+  ];
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i], by=ly+34+i*58, aa=ease((t-400-i*160)/600);
+    x.save(); x.globalAlpha=a2*aa;
+    var isBrain=(i===1);                    /* Connect is the asset, not a peer step */
+    x.fillStyle=isBrain?cv('--surface'):bg; x.strokeStyle=isBrain?'#b06000':bd;
+    x.lineWidth=isBrain?1.6:1.2;
+    rr(x,14,by,W-28,50,10); x.fill(); x.stroke();
+    x.fillStyle=r[2]; rr(x,14,by,isBrain?8:5,50,2.5); x.fill();
+    txt(x,r[0],isBrain?36:32,by+18,15.5,700,ink,'left');
+    txt(x,r[1],isBrain?36:32,by+36,11.5,400,ink2,'left');
+    /* brand yellow fails contrast as small text on white — use a dark amber for the label only */
+    txt(x,r[3],W-(isBrain?96:30),by+25,10.5,500,(r[2]===yel?'#b06000':r[2]),'right');
+    if(isBrain) brain(x,W-56,by+25,17,ease((t-900)/900)*0.85,0,'#b06000',false);
+    x.restore();
+  }
+  x.restore();
+
+  /* sources (bottom) */
+  var sy=374, a3=ease((t-150)/600);
+  var srcs=[['Databases &\nwarehouses',blue],['Documents,\ncontracts, manuals',yel],['Calls, tickets,\nimages',grn]];
+  var sw=(W-2*14)/3;
+  x.save(); x.globalAlpha=a3;
+  for(var j=0;j<3;j++){
+    var px=j*(sw+14);
+    x.fillStyle=bg; x.strokeStyle=bd; x.lineWidth=1.2;
+    rr(x,px,sy,sw,54,10); x.fill(); x.stroke();
+    x.fillStyle=srcs[j][1]; rr(x,px,sy,sw,3.5,1.75); x.fill();
+    var lines=srcs[j][0].split('\n');
+    txt(x,lines[0],px+sw/2,sy+22,12.5,600,ink,'center');
+    txt(x,lines[1],px+sw/2,sy+38,12.5,600,ink,'center');
+  }
+  txt(x,'YOUR EXISTING ESTATE — ACROSS TWO OR THREE CLOUDS, LEFT IN PLACE',W/2,H-6,10.5,700,ink2,'center');
+  x.restore();
+
+  /* flow particles bottom -> top */
+  if(t>900){
+    var lanes=[sw/2, sw+14+sw/2, 2*(sw+14)+sw/2];
+    for(var k=0;k<lanes.length;k++){
+      for(var n=0;n<3;n++){
+        var ph=((t-900)/1600 + n/3 + k*0.13)%1;
+        var py=sy - ph*(sy-70);
+        x.save(); x.globalAlpha=.55*(1-Math.abs(ph-0.5)*0.9);
+        x.fillStyle=srcs[k][1]; x.beginPath(); x.arc(lanes[k],py,3.4,0,7); x.fill(); x.restore();
+      }
+      x.save(); x.globalAlpha=.28; x.strokeStyle=srcs[k][1]; x.lineWidth=1.2; x.setLineDash([3,5]);
+      x.beginPath(); x.moveTo(lanes[k],sy-2); x.lineTo(lanes[k],ly+lh+4); x.stroke(); x.restore();
+    }
+    /* answer arrow up */
+    x.save(); x.globalAlpha=.5; x.strokeStyle=blue7; x.lineWidth=1.4; x.setLineDash([3,5]);
+    x.beginPath(); x.moveTo(W/2,ly-4); x.lineTo(W/2,66); x.stroke(); x.restore();
+  }
+  return true;
+}
+
+/* ---------- SLIDE 4 : what is built once vs what each domain adds ----------
+   Composition view, not a cost curve. The three reusable components are the
+   ones the brief names explicitly; segments are equal-width and deliberately
+   unnumbered, so nothing here implies a cost figure we cannot stand behind. */
+function draw4(t){
+  var W=950,H=142,x=setup('c4',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), ink3=cv('--ink-3'), bg=cv('--bg');
+  var teal=cv('--g-teal'), yel=cv('--g-yellow');
+  var segs=[
+    {k:'Pipeline',            c:cv('--g-blue')},
+    {k:'Governance',          c:cv('--g-green')},
+    {k:'Evaluation harness',  c:cv('--g-purple')},
+    {k:'Business brain',      c:teal},
+    {k:'Content & questions', c:yel}
+  ];
+  var LX=130, gap=8, sw=(W-LX-4*gap)/5, bh=32, y1=16, y2=64;
+
+  /* r1 states: everything is built. r2 states: three reused, the brain extends,
+     content is the only genuinely new build. */
+  function row(y,label,sub,states,delay){
+    var la=ease((t-delay)/500);
+    x.save(); x.globalAlpha=la;
+    txt(x,label,0,y+12,12.5,700,ink,'left');
+    txt(x,sub,0,y+28,10.5,400,ink2,'left');
+    x.restore();
+    for(var i=0;i<segs.length;i++){
+      var a=ease((t-delay-i*100)/560), px=LX+i*(sw+gap), st=states[i], s=segs[i];
+      var dark = s.c===yel || s.c===teal;
+      x.save(); x.globalAlpha=a;
+      if(st==='reuse'){
+        x.fillStyle=bg; rr(x,px,y,sw,bh,7); x.fill();
+        x.strokeStyle=s.c; x.globalAlpha=a*0.5; x.lineWidth=1.4; x.setLineDash([4,4]);
+        rr(x,px,y,sw,bh,7); x.stroke(); x.setLineDash([]); x.globalAlpha=a;
+        txt(x,s.k,px+sw/2,y+bh/2-5,10.5,600,ink3,'center');
+        txt(x,'already exists',px+sw/2,y+bh/2+8,9.5,600,ink3,'center');
+      }else if(st==='extend'){
+        /* inherited core, plus a visible increment this domain adds */
+        var core=sw*0.66;
+        x.fillStyle=s.c; rr(x,px,y,core,bh,7); x.fill();
+        txt(x,s.k,px+core/2,y+bh/2,10.5,700,dark?'#0b2b31':'#fff','center');
+        x.strokeStyle=s.c; x.lineWidth=1.6; x.setLineDash([4,3]);
+        rr(x,px+core+4,y,sw-core-4,bh,7); x.stroke(); x.setLineDash([]);
+        txt(x,'+',px+core+4+(sw-core-4)/2,y+bh/2,15,700,s.c,'center');
+      }else{
+        x.fillStyle=s.c; rr(x,px,y,sw,bh,7); x.fill();
+        txt(x,s.k,px+sw/2,y+bh/2+(s.sub?-5:0),10.5,700,dark?'#0b2b31':'#fff','center');
+        if(s.sub) txt(x,s.sub,px+sw/2,y+bh/2+8,9,600,dark?'#0b2b31':'#fff','center');
+      }
+      x.restore();
+    }
+  }
+
+  row(y1,'First domain','establishes the brain',
+      ['build','build','build','build','build'],0);
+  row(y2,'Every domain after','extends it',
+      ['reuse','reuse','reuse','extend','new'],560);
+
+  /* the compounding point — the reason this is an asset, not a saving */
+  var ca=ease((t-1350)/600);
+  if(ca>0){
+    x.save(); x.globalAlpha=ca;
+    var cx=LX+3*(sw+gap)+sw/2;
+    x.strokeStyle=teal; x.lineWidth=1.4;
+    x.beginPath(); x.moveTo(cx,y2+bh+3); x.lineTo(cx,y2+bh+11); x.stroke();
+    txt(x,'grows with every domain — each one makes the next smarter',cx,y2+bh+20,10.5,700,ink,'center');
+    x.restore();
+  }
+
+  x.save(); x.globalAlpha=ease((t-1500)/600);
+  txt(x,'Schematic. Pipeline, governance and evaluation harness are reused as-is; '
+       +'the business brain is the asset that compounds.',0,H-6,10.5,400,ink3,'left');
+  x.restore();
+  return t<2200;
+}
+
+/* ---------- SLIDE 5 : groundedness over the PoC ---------- */
+function draw5(t){
+  var W=700,H=300,x=setup('c5',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), bd=cv('--border'), grn=cv('--g-green'),
+      blue7=cv('--g-blue-700'), red=cv('--g-red'), bg=cv('--bg');
+  var L=46,R=W-16,T=34,B=H-38;
+  var pts=[[0,41],[1,55],[2,66],[3,76],[4,84],[5,89],[6,93]];
+  function X(v){ return L+(v/6)*(R-L); }
+  function Y(v){ return B-(v/100)*(B-T); }
+
+  /* target band */
+  x.fillStyle=grn; x.save(); x.globalAlpha=.10;
+  x.fillRect(L,Y(100),R-L,Y(90)-Y(100)); x.restore();
+  x.save(); x.strokeStyle=grn; x.setLineDash([5,5]); x.lineWidth=1.3;
+  x.beginPath(); x.moveTo(L,Y(90)); x.lineTo(R,Y(90)); x.stroke(); x.restore();
+  txt(x,'target ≥ 90% groundedness',L+8,Y(90)-12,10.5,700,grn,'left');
+
+  /* axes */
+  x.strokeStyle=bd; x.lineWidth=1;
+  x.beginPath(); x.moveTo(L,T); x.lineTo(L,B); x.lineTo(R,B); x.stroke();
+  [0,25,50,75,100].forEach(function(v){
+    x.save(); x.globalAlpha=.5; x.strokeStyle=bd; x.setLineDash([2,4]);
+    x.beginPath(); x.moveTo(L,Y(v)); x.lineTo(R,Y(v)); x.stroke(); x.restore();
+    txt(x,v+'%',L-8,Y(v),10.5,500,ink2,'right');
+  });
+  for(var w=0;w<=6;w++) txt(x,'W'+w,X(w),B+16,10.5,500,ink2,'center');
+
+  /* baseline */
+  x.save(); x.strokeStyle=red; x.lineWidth=1.6; x.setLineDash([6,5]);
+  x.beginPath(); x.moveTo(L,Y(41)); x.lineTo(R,Y(41)); x.stroke(); x.restore();
+  txt(x,'baseline: retrieval without the brain',R-4,Y(41)-12,10.5,700,red,'right');
+
+  /* curve */
+  var p=ease(t/1500), shown=p*6;
+  x.save(); x.strokeStyle=blue7; x.lineWidth=3; x.lineJoin='round'; x.beginPath();
+  for(var i=0;i<pts.length;i++){
+    var vx=pts[i][0]; if(vx>shown) break;
+    if(i===0) x.moveTo(X(vx),Y(pts[i][1])); else x.lineTo(X(vx),Y(pts[i][1]));
+  }
+  if(shown<6){
+    var i0=Math.floor(shown), i1=Math.min(i0+1,6), fr=shown-i0;
+    var vy=pts[i0][1]+(pts[i1][1]-pts[i0][1])*fr;
+    x.lineTo(X(shown),Y(vy));
+  }
+  x.stroke(); x.restore();
+  for(var j=0;j<pts.length;j++){
+    if(pts[j][0]>shown) continue;
+    x.fillStyle=bg; x.strokeStyle=blue7; x.lineWidth=2.4;
+    x.beginPath(); x.arc(X(pts[j][0]),Y(pts[j][1]),4.2,0,7); x.fill(); x.stroke();
+  }
+  if(p>=1){
+    x.fillStyle=blue7; rr(x,X(6)-62,Y(93)-34,58,22,6); x.fill();
+    txt(x,'93%',X(6)-33,Y(93)-23,12.5,700,'#fff','center');
+  }
+  /* The motif closes the loop: the same glyph that was empty on slide 1,
+     now connected. The curve rises because the brain develops. */
+  var ba=ease((t-1500)/700);
+  if(ba>0){
+    x.save(); x.globalAlpha=ba;
+    var by=Y(21), gx0=X(2.3), gx1=X(3.8), gx2=X(5.35);
+    function arrow(a,b){
+      x.strokeStyle=cv('--ink-3'); x.lineWidth=1.2;
+      x.beginPath(); x.moveTo(a,by); x.lineTo(b,by); x.stroke();
+      x.fillStyle=cv('--ink-3');
+      x.beginPath(); x.moveTo(b,by); x.lineTo(b-6,by-3.5); x.lineTo(b-6,by+3.5);
+      x.closePath(); x.fill();
+    }
+    brain(x,gx0,by,16,0.1,0.9,cv('--ink-3'),true);   /* week 0 — barely connected */
+    arrow(gx0+26,gx1-26);
+    brain(x,gx1,by,16,1,0,blue7,false);              /* week 6 — a brain that reasons */
+    arrow(gx1+26,gx2-42);
+    /* the whole point of the brain: something reasons over it */
+    x.fillStyle=cv('--g-blue-050'); x.strokeStyle=blue7; x.lineWidth=1.4;
+    rr(x,gx2-40,by-14,80,28,14); x.fill(); x.stroke();
+    txt(x,'AI agents',gx2,by,11.5,700,blue7,'center');
+    txt(x,'the brain develops — and every agent reasons over it',
+        (gx0+gx2)/2,by+32,10.5,700,ink2,'center');
+    x.restore();
+  }
+  txt(x,'SIX-WEEK PROOF OF CONCEPT · ONE DOMAIN · AGENT ANSWERS SCORED AGAINST YOUR GOLDEN QUESTION SET',
+      L-30,14,10.5,700,ink2,'left');
+  return t<2300;
+}
+
+/* ---------- animation driver ---------- */
+var DRAW=[draw1,draw2,draw3,draw4,draw5];
+var raf=null, start=0, cur=0;
+var STILL=/[?&]still=1/.test(location.search); /* freeze at end state, for export */
+function loop(ts){
+  if(!start) start=ts;
+  var more=false;
+  try{ more=DRAW[cur](STILL?99999:(ts-start)); }catch(e){}
+  if(STILL) { raf=null; return; }
+  if(cur===2) more=true; /* slide 3 keeps its flow particles moving */
+  if(more) raf=requestAnimationFrame(loop); else raf=null;
+}
+function animate(){
+  if(raf) cancelAnimationFrame(raf);
+  start=0; raf=requestAnimationFrame(loop);
+}
+
+/* counters + gap bars */
+function reveal(n){
+  if(n===1){
+    var bars=document.querySelectorAll('#gaps .bar');
+    for(var i=0;i<bars.length;i++) bars[i].style.width='0';
+    setTimeout(function(){
+      for(var i=0;i<bars.length;i++)(function(b,d){
+        setTimeout(function(){ b.style.width='100%'; },d);
+      })(bars[i],i*110);
+    },60);
+  }
+  if(n===4){
+    var els=document.querySelectorAll('#s5 [data-count]');
+    for(var k=0;k<els.length;k++)(function(el){
+      var target=+el.getAttribute('data-count'), suf=el.getAttribute('data-suffix')||'', t0=null;
+      /* still/export mode must show the FINAL figure — a mid-animation
+         snapshot would publish a number that is simply wrong. */
+      if(STILL){ el.textContent=target+suf; return; }
+      function step(ts){ if(!t0)t0=ts; var p=ease((ts-t0)/1100);
+        el.textContent=Math.round(target*p)+suf; if(p<1) requestAnimationFrame(step); }
+      el.textContent='0'+suf; requestAnimationFrame(step);
+    })(els[k]);
+  }
+}
+
+/* ---------- navigation ---------- */
+var slides=document.querySelectorAll('.slide'), N=slides.length, dots=document.getElementById('dots');
+for(var i=0;i<N;i++)(function(i){
+  var d=document.createElement('div'); d.className='dot';
+  d.onclick=function(e){ e.stopPropagation(); go(i); }; dots.appendChild(d);
+})(i);
+function go(n){
+  cur=Math.max(0,Math.min(N-1,n));
+  for(var i=0;i<N;i++) slides[i].classList.toggle('active',i===cur);
+  var ds=dots.children; for(var j=0;j<ds.length;j++) ds[j].classList.toggle('on',j===cur);
+  document.getElementById('meta').textContent='Agentic Data Foundation · '+(cur+1)+' / '+N;
+  animate(); reveal(cur);
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { e.preventDefault(); go(cur+1); }
+  else if(e.key==='ArrowLeft'||e.key==='PageUp') { e.preventDefault(); go(cur-1); }
+  else if(e.key==='Home') go(0); else if(e.key==='End') go(N-1);
+  else if(e.key>='1'&&e.key<='5') go(+e.key-1);
+  else if(e.key.toLowerCase()==='d') toggleTheme();
+});
+document.body.addEventListener('click',function(e){
+  if(e.target.closest('#chrome')) return;
+  go(cur + (e.clientX < window.innerWidth*0.25 ? -1 : 1));
+});
+
+/* ---------- theme ---------- */
+function toggleTheme(){
+  document.body.classList.toggle('dark');
+  document.getElementById('themeBtn').textContent=document.body.classList.contains('dark')?'Light':'Dark';
+  animate();
+}
+document.getElementById('themeBtn').onclick=function(e){ e.stopPropagation(); toggleTheme(); };
+document.getElementById('prevBtn').onclick=function(e){ e.stopPropagation(); go(cur-1); };
+document.getElementById('nextBtn').onclick=function(e){ e.stopPropagation(); go(cur+1); };
+/* Static exports (PNG/PDF) should not show interactive chrome. */
+if(STILL) document.body.classList.add('export');
+
+/* ---------- fit to viewport ---------- */
+function fit(){
+  var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+  document.getElementById('stage').style.transform='scale('+s+')';
+}
+window.addEventListener('resize',function(){ try{ fit(); }catch(e){} });
+window.addEventListener('hashchange',function(){ go((+location.hash.replace('#','')||1)-1); });
+try{ fit(); }catch(e){}
+try{ go((+location.hash.replace('#','')||1)-1); }
+catch(e){ /* worst case: leave the static first slide visible */
+  document.documentElement.className=''; }
+})();
+</script>
+</body>
+</html>

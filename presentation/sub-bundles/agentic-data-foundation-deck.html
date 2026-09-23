@@ -50,9 +50,12 @@ h2{font-size:40px; line-height:1.1; font-weight:700; letter-spacing:-.018em}
 .slide-head h2{margin-top:8px}
 .slide-head .sub{margin-top:10px; max-width:900px}
 
-/* ---- chrome ---- */
+/* ---- auto-hiding chrome ---- */
 #chrome{position:absolute; left:0; right:0; bottom:0; height:52px;
-  display:flex; align-items:center; gap:14px; padding:0 72px; pointer-events:none}
+  display:flex; align-items:center; gap:14px; padding:0 72px;
+  opacity:0; transform:translateY(10px); pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease; z-index:40}
+body.show-chrome #chrome, #chrome:hover{opacity:1; transform:none; pointer-events:auto}
 #dots{display:flex; gap:8px; pointer-events:auto}
 .dot{width:26px; height:4px; border-radius:2px; background:var(--border); cursor:pointer; transition:background .25s,width .25s}
 .dot.on{background:var(--g-blue-700); width:38px}
@@ -148,8 +151,8 @@ body.export #chrome button{display:none}
   <meta name="deck-role" content="sub-bundle">
   <meta name="catalog-visibility" content="hidden">
   <meta name="parent-deck" content="knowledge-management-sherlock">
-  <meta name="git-commit" content="5ec6543">
-  <meta name="published-at" content="2026-09-23T07:14:32Z">
+  <meta name="git-commit" content="5384946">
+  <meta name="published-at" content="2026-09-23T07:24:24Z">
 </head>
 <body>
 <script>
@@ -351,6 +354,15 @@ function txt(x,s,a,b,size,weight,color,align){
   x.textBaseline='middle'; x.fillText(s,a,b);
 }
 function ease(t){ return t<0 ? 0 : t>1 ? 1 : 1-Math.pow(1-t,3); }
+
+var chromeTimer = null;
+window.addEventListener('mousemove', function(e){
+  document.body.classList.add('show-chrome');
+  if(chromeTimer) clearTimeout(chromeTimer);
+  if(!(e && e.clientY > window.innerHeight - 75)){
+    chromeTimer = setTimeout(function(){ document.body.classList.remove('show-chrome'); }, 2000);
+  }
+});
 
 /* ---------------------------------------------------------------
    THE MOTIF. One glyph, carried through all five slides: the

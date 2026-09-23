@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Solution Brief: Knowledge Your AI Agents Can Actually Use — BigQuery &amp; Knowledge Catalog</title>
+<style>
+:root {
+  --blue: #1a73e8;
+  --blue-soft: #d2e3fc;
+  --ink: #202124;
+  --ink2: #3c4043;
+  --grey: #5f6368;
+  --line: #dadce0;
+  --bg: #ffffff;
+  --font: "Google Sans", "Product Sans", Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: #f1f3f4;
+  line-height: 1.5;
+  padding: 32px 16px;
+}
+.page {
+  max-width: 860px;
+  margin: 0 auto 28px;
+  background: var(--bg);
+  padding: 54px 60px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #174ea6;
+  margin-bottom: 12px;
+}
+.subtitle {
+  font-size: 16px;
+  font-style: italic;
+  color: var(--ink2);
+  margin-bottom: 28px;
+}
+h2 {
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--blue);
+  margin: 28px 0 12px;
+}
+p {
+  font-size: 13.5px;
+  color: var(--ink2);
+  margin-bottom: 14px;
+}
+ul {
+  margin: 10px 0 16px 24px;
+  font-size: 13.5px;
+  color: var(--ink2);
+}
+li { margin-bottom: 6px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 24px;
+  font-size: 13px;
+}
+th {
+  background: var(--blue-soft);
+  color: var(--ink);
+  font-weight: 700;
+  text-align: left;
+  padding: 10px 14px;
+}
+td {
+  padding: 12px 14px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink2);
+}
+td:first-child {
+  font-weight: 700;
+  color: var(--ink);
+  width: 22%;
+}
+.footnote {
+  font-size: 11.5px;
+  color: var(--grey);
+  margin-top: 6px;
+}
+.cta-box {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: 24px;
+}
+@media print {
+  body { background: #fff; padding: 0; }
+  .page { box-shadow: none; margin: 0; padding: 36px 42px; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+}
+</style>
+  <meta name="tags" content="BigQuery, Knowledge Catalog, Hybrid Search, GraphRAG, Sherlock">
+  <meta name="deck-role" content="sub-bundle">
+  <meta name="catalog-visibility" content="hidden">
+  <meta name="parent-deck" content="knowledge-management-sherlock">
+  <meta name="git-commit" content="b5ae267">
+  <meta name="published-at" content="2026-09-23T06:10:06Z">
+</head>
+<body>
+
+<div class="page">
+  <h1>Solution Brief: Knowledge Your AI Agents Can Actually Use</h1>
+  <div class="subtitle">
+    Turn scattered documents, data, and relationships — across every platform you already run — into a
+    governed knowledge layer in BigQuery and Knowledge Catalog, so every question gets a correct, current, cited answer.
+  </div>
+
+  <h2>The Challenge</h2>
+  <p>
+    Enterprise AI agents are failing in production because they face an <b>Enterprise Context Gap</b>. High-value decisions —
+    approving a loan, diagnosing a machine, rerouting a supply chain, or investigating complex cases — need both the live
+    operational numbers in databases and the business rules locked in contracts, manuals, and tickets. Those two worlds are
+    disconnected, and the knowledge itself was built for humans, not machines: unreadable in document layouts, unconnected
+    across systems, and unexplained in meaning, ownership, and permissions. Agents therefore retrieve text that <i>looks</i>
+    relevant rather than facts that are correct — unable to reason across documents, cite their sources, or tailor answers
+    to who is asking. The bottleneck is no longer model capability. It is the missing governed knowledge layer between the
+    data and the agent.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Gap</th>
+        <th>What it means</th>
+        <th>What it costs you</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Unreachable</td>
+        <td>Facts sit in one platform, documents in another, across two or three clouds</td>
+        <td>No agent ever sees the whole picture — answers are right but incomplete</td>
+      </tr>
+      <tr>
+        <td>Unreadable</td>
+        <td>80–90% of knowledge is unstructured; standard extraction destroys tables and hierarchy</td>
+        <td>The agent quotes fragments with no idea what section, clause, or entity they belong to</td>
+      </tr>
+      <tr>
+        <td>Unconnected</td>
+        <td>The same customer or entity appears under six aliases, with no record of how anything relates</td>
+        <td>Multi-hop and "what's affected?" questions are unanswerable at any model size</td>
+      </tr>
+      <tr>
+        <td>Ungoverned</td>
+        <td>Permissions and row/column security aren't enforced at the point of retrieval</td>
+        <td>Agents cannot go live on real enterprise data with real users</td>
+      </tr>
+      <tr>
+        <td>Unexplained</td>
+        <td>No agreed business glossary meaning, source-of-record ownership, or freshness metadata</td>
+        <td>The agent picks the wrong source — and states the wrong answer with complete certainty</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:50%">Why it's hard to solve</th>
+        <th style="width:50%">What good looks like</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-weight:400">
+          The bottleneck has moved from model capability to context. And that context is spread across platforms you've
+          deliberately invested in — so the answer can't be "consolidate everything first." Getting the right knowledge,
+          with the right permissions, into the model at the right moment is a data engineering and governance problem,
+          solved <i>across</i> your estate rather than by rebuilding it.
+        </td>
+        <td style="font-weight:400">
+          Anyone — or any agent — asks a question in plain language and gets a correct, cited answer that respects their
+          permissions. Including multi-hop questions that span an unstructured document, a resolved golden entity record,
+          and an operational event log at the same time.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="page">
+  <h2>The Solution</h2>
+  <p>
+    A governed <b>knowledge layer</b> between your data and your agents. It reads content that already exists — no one has
+    to rewrite documents — and reaches across your existing platforms rather than replacing them. Three jobs, not one search box:
+  </p>
+  <ul>
+    <li><b>Understand</b> — read documents, calls, and images with layout-aware parsing (<code>AI.PARSE_DOCUMENT</code>) and autonomous embeddings (<code>AI.EMBED</code>), so structure, tables, and hierarchy survive extraction.</li>
+    <li><b>Connect</b> — resolve entity aliases into canonical golden records, standardize relationship vocabularies (<code>AI.CLASSIFY</code>), and model how everything relates in <b>BigQuery Graph</b> (<code>GRAPH_TABLE</code>).</li>
+    <li><b>Serve</b> — retrieve using <b>BigQuery Hybrid Search</b> (<code>AI.SEARCH</code> / Reciprocal Rank Fusion over dense vectors + lexical search index) enriched with <b>BigQuery Knowledge Catalog</b> business definitions and row-level permissions.</li>
+  </ul>
+
+  <h2>Why Google Cloud</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Differentiator</th>
+        <th>Why it matters</th>
+        <th style="width:16%">Closes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Your data stays where it is</td>
+        <td>
+          BigLake and federated queries allow BigQuery to read facts held in existing third-party data warehouses — across
+          any cloud — alongside unstructured documents in Object Tables. Everything operates under one governance model with
+          zero data migration required.
+        </td>
+        <td><b>Unreachable</b></td>
+      </tr>
+      <tr>
+        <td>Layout-aware understanding &amp; autonomous embeddings</td>
+        <td>
+          <code>AI.PARSE_DOCUMENT</code> preserves document hierarchy, headings, and table structure directly inside BigQuery SQL,
+          while Autonomous Embedding Generation (<code>GENERATED ALWAYS AS (AI.EMBED(...))</code>) keeps vector indexes
+          automatically synchronized as documents change — without external ETL or bolt-on vector databases.
+        </td>
+        <td><b>Unreadable</b></td>
+      </tr>
+      <tr>
+        <td>BigQuery Graph + Hybrid Search in one engine</td>
+        <td>
+          We execute ISO-standard property graph traversal (<code>GRAPH_TABLE</code>) and <b>BigQuery Hybrid Search</b>
+          (combining semantic <code>VECTOR_SEARCH</code> with full-text <code>SEARCH</code> indexes via Reciprocal Rank Fusion)
+          in a single SQL query. Proper nouns and aliases never slip through dense-vector blind spots.
+        </td>
+        <td><b>Unconnected</b></td>
+      </tr>
+      <tr>
+        <td>Governance enforced at retrieval</td>
+        <td>
+          A single enterprise permission model spans structured tables, property graphs, and unstructured Object Tables.
+          IAM, column/row-level security, and data lineage are strictly enforced at the moment of retrieval rather than
+          patched on in application code.
+        </td>
+        <td><b>Ungoverned</b></td>
+      </tr>
+      <tr>
+        <td>BigQuery Knowledge Catalog semantic layer</td>
+        <td>
+          <b>Knowledge Catalog</b> links curated business glossary terms (<i>Canonical Entity, Alias, Source of Record,
+          Record Date vs. Event Date, Participant Role</i>) directly to physical BigQuery columns. Agents query Knowledge
+          Catalog dynamically at runtime to resolve business vocabulary, provenance trust weighting, and data freshness.
+        </td>
+        <td><b>Unexplained</b></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Measured Outcomes &amp; Reference Proof</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34%">Outcome</th>
+        <th style="width:66%">Reference Architecture &amp; Production Proof</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>Time-to-answer</b> — questions that took days answered in seconds</td>
+        <td>
+          In the <b>Sherlock Canon GraphRAG Reference Architecture</b> (<code>all-things-knowledge-mgmt.sherlock</code>),
+          multi-hop questions spanning 60 unstructured books, 2,000+ resolved character/location entities, and disguised
+          aliases (e.g., <i>Sigerson &rarr; Sherlock Holmes</i>, <i>Vandeleur &rarr; Stapleton</i>) resolve in a single
+          BigQuery Hybrid GraphRAG call (~10–15s) with story and chapter citations.
+        </td>
+      </tr>
+      <tr>
+        <td><b>Groundedness &gt; 90%</b> — continuously scored against a golden set</td>
+        <td>
+          Contract and investigative intelligence deployments combining <b>BigQuery Hybrid Search</b> (semantic + lexical RRF)
+          with 2-tier <b>BigQuery Graph</b> event expansion surface obligation and risk exposure in hours rather than weeks,
+          lifting measured groundedness from ~41% (naive vector RAG) to <b>&gt;90%</b>.
+        </td>
+      </tr>
+      <tr>
+        <td><b>Compounding reuse</b> — each new domain extends the shared brain</td>
+        <td>
+          The ingestion pipeline (<code>AI.PARSE_DOCUMENT</code>), entity-resolution adjudication pattern
+          (<code>5_er_judged_pairs</code>), <b>Knowledge Catalog</b> glossary taxonomy, and ADK evaluation harness are built
+          once in Domain 1 and reused as-is; subsequent domains only add domain-specific documents and graph edges.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="cta-box">
+    <h2>Get Started</h2>
+    <p>
+      <b>A two-hour discovery workshop.</b> Bring your top 20 cross-system business questions; we map which ones your
+      estate can answer today, where the 5 Context Gaps appear, and how <b>BigQuery Hybrid Search</b>, <b>BigQuery Graph</b>,
+      and <b>Knowledge Catalog</b> close them — followed by an optional six-week Proof of Concept on one domain with
+      golden-set groundedness metrics agreed up front.
+    </p>
+    <p class="footnote">
+      Reference Demo: <code>all-things-knowledge-mgmt.sherlock</code> · BigQuery Knowledge Catalog (<code>knowledge-management</code> glossary) · Agent Development Kit (ADK) · v1.3
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

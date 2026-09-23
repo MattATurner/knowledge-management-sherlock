@@ -6,629 +6,683 @@
 <title>From Stories to Decisions — The Sherlock Knowledge Layer on Google Cloud</title>
 <style>
 :root {
-  /* Google Cloud Light Mode (GM3 Console & Briefings) */
-  --bg: #F8F9FA;
-  --surface: #FFFFFF;
-  --surface-alt: #F1F3F4;
-  --border: #DADCE0;
-  --text: #202124;
-  --text-secondary: #5F6368;
-  --text-muted: #80868B;
-
-  /* Core Google Cloud Semantic Accents */
-  --gcp-blue: #1A73E8;
-  --gcp-blue-light: #E8F0FE;
-  --gcp-green: #1E8E3E;
-  --gcp-green-light: #E6F4EA;
-  --gcp-yellow: #E37400;
-  --gcp-yellow-border: #F9AB00;
-  --gcp-yellow-light: #FEF7E0;
-  --gcp-red: #D93025;
-  --gcp-red-light: #FCE8E6;
-
-  /* Functional Aliases */
-  --primary: var(--gcp-blue);
-  --primary-light: var(--gcp-blue-light);
-  --secondary: var(--gcp-green);
-  --secondary-light: var(--gcp-green-light);
-  --accent: var(--gcp-yellow-border);
-  --accent-light: var(--gcp-yellow-light);
-  --danger: var(--gcp-red);
-  --danger-light: var(--gcp-red-light);
-
+  --g-blue: #4285F4; --g-red: #EA4335; --g-yellow: #FBBC04; --g-green: #34A853;
+  --g-blue-700: #1A73E8; --g-blue-050: #E8F0FE;
+  --g-green-050: #E6F4EA; --g-yellow-050: #FEF7E0; --g-red-050: #FCE8E6;
+  --g-amber-ink: #B06000;
+  --ink: #202124; --ink-2: #5F6368; --ink-3: #80868B;
+  --border: #DADCE0; --surface: #F8F9FA; --bg: #FFFFFF;
+  --shadow: 0 1px 2px rgba(60,64,67,.08), 0 4px 14px rgba(60,64,67,.10);
+  --shadow-spotlight: 0 12px 28px -4px rgba(26,115,232,.26);
   --dim-opacity: 0.22;
-  --shadow-sm: 0 1px 2px 0 rgba(60, 64, 67, 0.1), 0 1px 3px 1px rgba(60, 64, 67, 0.06);
-  --shadow-md: 0 4px 12px rgba(60, 64, 67, 0.12);
-  --shadow-spotlight: 0 12px 28px -4px rgba(26, 115, 232, 0.24);
-  --gcp-four-color: linear-gradient(90deg, #4285F4 0% 25%, #EA4335 25% 50%, #FBBC04 50% 75%, #34A853 75% 100%);
-  --font-display: "Google Sans", "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: "Google Sans Text", "Roboto", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: "Roboto Mono", "Google Sans Mono", "JetBrains Mono", monospace;
+  --font: "Google Sans","Product Sans",Roboto,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono: "Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-
-:root[data-theme="dark"] {
-  /* Google Cloud Dark Mode (Cloud Next & Developer Dark) */
-  --bg: #131822;
-  --surface: #1C2331;
-  --surface-alt: #252E40;
-  --border: #3C4043;
-  --text: #E8EAED;
-  --text-secondary: #9AA0A6;
-  --text-muted: #80868B;
-
-  --gcp-blue: #8AB4F8;
-  --gcp-blue-light: rgba(138, 180, 248, 0.15);
-  --gcp-green: #81C995;
-  --gcp-green-light: rgba(129, 201, 149, 0.15);
-  --gcp-yellow: #FDD663;
-  --gcp-yellow-border: #FDD663;
-  --gcp-yellow-light: rgba(253, 214, 99, 0.15);
-  --gcp-red: #F28B82;
-  --gcp-red-light: rgba(242, 139, 130, 0.15);
-
-  --primary: var(--gcp-blue);
-  --primary-light: var(--gcp-blue-light);
-  --secondary: var(--gcp-green);
-  --secondary-light: var(--gcp-green-light);
-  --accent: var(--gcp-yellow-border);
-  --accent-light: var(--gcp-yellow-light);
-  --danger: var(--gcp-red);
-  --danger-light: var(--gcp-red-light);
-
-  --dim-opacity: 0.20;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
-  --shadow-spotlight: 0 12px 32px -4px rgba(138, 180, 248, 0.32);
+body.dark {
+  --ink: #E8EAED; --ink-2: #9AA0A6; --ink-3: #80868B;
+  --border: #3C4043; --surface: #202124; --bg: #131314;
+  --g-blue-700: #8AB4F8; --g-blue-050: #1F2A3D;
+  --g-green-050: rgba(52,168,83,.16); --g-yellow-050: rgba(251,188,4,.16); --g-red-050: rgba(234,67,53,.16);
+  --g-amber-ink: #FDD663;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 18px rgba(0,0,0,.5);
+  --shadow-spotlight: 0 12px 32px -4px rgba(138,180,248,.32);
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-body); -webkit-font-smoothing: antialiased; transition: background 0.25s ease, color 0.25s ease; }
-
-/* Signature 4-Color Top Ribbon */
-.brand-ribbon {
-  position: fixed; top: 0; left: 0; right: 0; height: 4px;
-  background: var(--gcp-four-color); z-index: 50;
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  -webkit-font-smoothing: antialiased; transition: background .25s, color .25s;
 }
 
-/* Deck & Optical Vertical Grouping (NEVER space-between) */
-.deck { position: relative; width: 100vw; height: 100vh; }
-.s {
-  position: absolute; inset: 0;
-  height: 100vh; width: 100%;
-  max-width: 1320px; margin: 0 auto;
-  padding: 56px 64px 84px;
-  display: flex; flex-direction: column; justify-content: center; gap: 32px;
-  opacity: 0; pointer-events: none; transform: translateY(10px);
-  transition: opacity 0.28s ease, transform 0.28s ease;
+/* ==========================================================================
+   EXECUTIVE DECK STAGE ARCHITECTURE: Fixed 1280x720 scaled via fit()
+   ========================================================================== */
+#stage {
+  position: relative; width: 1280px; height: 720px;
+  transform-origin: 50% 50%; flex: none; background: var(--bg);
 }
-.s.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.brandbar { position: absolute; top: 0; left: 0; height: 5px; width: 100%; display: flex; z-index: 20; }
+.brandbar i { flex: 1; }
+.brandbar i:nth-child(1) { background: var(--g-blue); }
+.brandbar i:nth-child(2) { background: var(--g-red); }
+.brandbar i:nth-child(3) { background: var(--g-yellow); }
+.brandbar i:nth-child(4) { background: var(--g-green); }
 
-/* Typography Scale */
-.slide-header { display: flex; flex-direction: column; gap: 10px; max-width: 1080px; }
-.badge {
-  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
-  font-family: var(--font-display); font-size: 0.75rem; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  padding: 5px 12px; border-radius: 99px;
-  background: var(--primary-light); color: var(--primary);
+.slide {
+  position: absolute; inset: 0; background: var(--bg);
+  padding: 50px 68px 62px; display: none; flex-direction: column;
+  opacity: 0; transition: opacity .3s ease;
 }
-.badge.green { background: var(--secondary-light); color: var(--secondary); }
-.badge.yellow { background: var(--accent-light); color: var(--gcp-yellow); }
-.badge.red { background: var(--danger-light); color: var(--danger); }
+.slide.active { display: flex; opacity: 1; }
 
-h1 {
-  font-family: var(--font-display); font-size: clamp(2.4rem, 3.6vw, 3.35rem);
-  font-weight: 800; line-height: 1.1; letter-spacing: -0.022em; color: var(--text);
+/* ---- Typography (Proportioned for 1280x720 Stage) ---- */
+.pill {
+  display: inline-block; align-self: flex-start; font-size: 12px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; padding: 5px 12px; border-radius: 99px;
+  background: var(--g-blue-050); color: var(--g-blue-700);
 }
-h2 {
-  font-family: var(--font-display); font-size: clamp(1.75rem, 2.5vw, 2.25rem);
-  font-weight: 700; line-height: 1.18; letter-spacing: -0.02em; color: var(--text);
-}
-h3 {
-  font-family: var(--font-display); font-size: 1.15rem;
-  font-weight: 600; line-height: 1.3; color: var(--text); margin-bottom: 6px;
-}
-.subtitle {
-  font-size: 1.1rem; line-height: 1.5; color: var(--text-secondary); max-width: 880px;
-}
+.pill.yellow { background: var(--g-yellow-050); color: var(--g-amber-ink); }
+.pill.green { background: var(--g-green-050); color: var(--g-green); }
+.pill.red { background: var(--g-red-050); color: var(--g-red); }
 
+.eyebrow { font-size: 13px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-2); font-weight: 700; }
+h1 { font-size: 54px; line-height: 1.05; font-weight: 700; letter-spacing: -.022em; margin-top: 14px; }
+h2 { font-size: 38px; line-height: 1.12; font-weight: 700; letter-spacing: -.018em; margin-top: 6px; }
+.hl { color: var(--g-blue-700); }
+.sub { font-size: 18.5px; line-height: 1.48; color: var(--ink-2); font-weight: 400; margin-top: 8px; max-width: 960px; }
+.slide-head { margin-bottom: 22px; flex: none; }
+
+/* ---- Full-Stage Body & Cards (.body { flex: 1 }) ---- */
+.body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; gap: 18px; }
+.hero-grid { display: grid; grid-template-columns: 1.08fr 1fr; gap: 42px; align-items: stretch; flex: 1; min-height: 0; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: 1; min-height: 0; }
+.split-grid { display: grid; grid-template-columns: 1.08fr 1fr; gap: 22px; flex: 1; min-height: 0; align-items: stretch; }
+
+.card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow); padding: 22px 22px 18px;
+  display: flex; flex-direction: column; position: relative; overflow: hidden;
+}
+.card.blue { border-top: 4px solid var(--g-blue); }
+.card.yellow { border-top: 4px solid var(--g-yellow); }
+.card.green { border-top: 4px solid var(--g-green); }
+.card.red { border-top: 4px solid var(--g-red); }
+
+.card .num { font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--ink-3); letter-spacing: .08em; margin-bottom: 6px; }
+.card h3 { font-size: 20px; font-weight: 700; line-height: 1.22; letter-spacing: -.01em; color: var(--ink); }
+.card p { font-size: 15px; line-height: 1.48; color: var(--ink-2); margin-top: 10px; }
+.card p strong { color: var(--ink); font-weight: 600; }
+
+/* Bottom-pinned footer inside every card so cards fill vertical space cleanly */
+.card .card-foot {
+  margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border);
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
 .badge-inline {
-  display: inline-block; font-family: var(--font-mono); font-size: 0.76rem;
-  font-weight: 600; padding: 2px 8px; border-radius: 6px;
-  background: var(--surface-alt); color: var(--primary); border: 1px solid var(--border);
-  vertical-align: middle; margin: 2px 2px;
+  display: inline-block; font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 6px; background: var(--surface);
+  color: var(--g-blue-700); border: 1px solid var(--border);
 }
 
-/* Grids & Cards */
-.arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-.split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: stretch; }
-.arch-node, .card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 14px; padding: 22px 24px;
-  box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px;
-}
-.arch-node.blue, .card.blue { border-top: 4px solid var(--gcp-blue); }
-.arch-node.yellow, .card.yellow { border-top: 4px solid var(--gcp-yellow-border); }
-.arch-node.green, .card.green { border-top: 4px solid var(--gcp-green); }
-.arch-node.red, .card.red { border-top: 4px solid var(--gcp-red); }
-
-.arch-node p, .card p {
-  font-size: 0.96rem; line-height: 1.5; color: var(--text-secondary);
-}
-.arch-node p strong, .card p strong { color: var(--text); font-weight: 600; }
-
-/* Callout Strip for Progressive Builds */
-.callout-strip {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; min-height: 78px;
-}
+/* Bottom Callout Strip */
+.callout-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: none; min-height: 74px; }
 .callout-card {
-  background: var(--surface-alt); border: 1px solid var(--border);
-  border-left: 4px solid var(--primary); border-radius: 10px;
-  padding: 14px 18px; font-size: 0.9rem; line-height: 1.45; color: var(--text-secondary);
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--g-blue-700); border-radius: 12px;
+  padding: 13px 16px; font-size: 13.5px; line-height: 1.42; color: var(--ink-2);
+  display: flex; flex-direction: column; justify-content: center;
 }
-.callout-card strong { color: var(--text); font-weight: 600; }
+.callout-card strong { color: var(--ink); font-weight: 700; display: block; margin-bottom: 2px; font-size: 13px; }
 
-/* Code Walkthrough Block */
+/* Hero KPI Stats */
+.stats { display: flex; gap: 34px; margin-top: auto; padding-top: 18px; border-top: 1px solid var(--border); }
+.stat .n { font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+.stat .l { font-size: 13px; color: var(--ink-2); margin-top: 5px; line-height: 1.35; }
+
+/* Code Panel for Slide 5 */
 .code-panel {
   background: #161B26; color: #E8EAED; border-radius: 14px;
-  padding: 20px 22px; font-family: var(--font-mono); font-size: 0.84rem;
-  line-height: 1.65; border: 1px solid #2D3748; overflow: hidden;
+  padding: 20px 22px; font-family: var(--mono); font-size: 13px;
+  line-height: 1.62; border: 1px solid #2D3748; display: flex; flex-direction: column; justify-content: space-around;
 }
-.code-line {
-  padding: 4px 10px; border-radius: 6px;
-  transition: opacity 0.28s ease, background 0.28s ease, transform 0.28s ease;
-}
-.code-line.is-spotlight {
-  background: rgba(138, 180, 248, 0.18);
-  border-left: 3px solid #8AB4F8;
-}
-.kw { color: #8AB4F8; font-weight: 600; }
+.code-line { padding: 10px 12px; border-radius: 8px; transition: all .28s ease; }
+.code-line.is-spotlight { background: rgba(138,180,248,.18); border-left: 4px solid #8AB4F8; }
+.kw { color: #8AB4F8; font-weight: 700; }
 .fn { color: #FDD663; }
-.str { color: #81C995; }
 .cm { color: #9AA0A6; font-style: italic; }
 
-/* Progressive Reveal (layout space is always reserved so elements never jump) */
+/* ---- Progressive Build & Focus-and-Context Scaffolding ---- */
 [data-build] {
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.28s ease, transform 0.28s ease;
-  pointer-events: none;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .28s ease, transform .28s ease; pointer-events: none;
 }
 [data-build].build-visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
+  opacity: 1; transform: translateY(0); pointer-events: auto;
 }
-
-/* Focus-and-Context Scaffolding (Anchor -> Dim -> Spotlight) */
 .scaffold-group > * {
-  transition: opacity 0.3s ease, transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+  transition: opacity .3s ease, transform .3s ease, border-color .3s ease, box-shadow .3s ease, filter .3s ease;
 }
 .scaffold-group > .is-dimmed {
-  opacity: var(--dim-opacity, 0.22);
-  filter: grayscale(45%);
-  transform: scale(0.98);
+  opacity: var(--dim-opacity); filter: grayscale(45%); transform: scale(0.98);
 }
 .scaffold-group > .is-spotlight {
-  opacity: 1 !important;
-  filter: none !important;
-  transform: scale(1.02);
-  border-color: var(--primary) !important;
-  box-shadow: var(--shadow-spotlight);
-  z-index: 2;
+  opacity: 1 !important; filter: none !important; transform: scale(1.015);
+  border-color: var(--g-blue-700) !important; box-shadow: var(--shadow-spotlight); z-index: 2;
 }
 
-/* Bottom Navigation & Controls */
-.chrome-bar {
-  position: fixed; left: 0; right: 0; bottom: 0; height: 54px;
-  background: var(--surface); border-top: 1px solid var(--border);
-  display: flex; align-items: center; gap: 12px; padding: 0 32px; z-index: 40;
+/* ---- Integrated Stage Chrome (Matches Executive Solution Deck) ---- */
+#chrome {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 50px;
+  display: flex; align-items: center; gap: 12px; padding: 0 68px; z-index: 30;
 }
-.ctrl-btn {
-  border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
-  font-family: var(--font-display); font-size: 0.8rem; font-weight: 600;
-  padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s ease;
+#dots { display: flex; gap: 8px; }
+.dot {
+  width: 24px; height: 4px; border-radius: 2px; background: var(--border);
+  cursor: pointer; transition: background .25s, width .25s;
 }
-.ctrl-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
-.ctrl-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.spacer { flex: 1; }
-.counter {
-  font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-secondary);
-  min-width: 125px; text-align: right;
+.dot.on { background: var(--g-blue-700); width: 38px; }
+#chrome .spacer { flex: 1; }
+.meta { font-size: 12px; color: var(--ink-3); letter-spacing: .04em; font-family: var(--mono); }
+.navBtn {
+  border: 1px solid var(--border); background: var(--bg); color: var(--ink-2);
+  font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .05em;
+  text-transform: uppercase; padding: 5px 12px; border-radius: 99px; cursor: pointer;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
 }
-.progress {
-  position: fixed; left: 0; bottom: 54px; height: 3px;
-  background: var(--gcp-blue); transition: width 0.3s ease; z-index: 45;
-}
+.navBtn:hover, .navBtn.active { border-color: var(--g-blue-700); color: var(--g-blue-700); background: var(--g-blue-050); }
 
-/* Step-Aware Speaker Notes Drawer */
-.notes-drawer {
-  position: fixed; left: 0; right: 0; bottom: 54px;
-  background: var(--surface); border-top: 3px solid var(--primary);
-  box-shadow: var(--shadow-md); padding: 18px 36px;
-  font-size: 0.94rem; line-height: 1.55; color: var(--text);
-  transform: translateY(110%); transition: transform 0.25s ease; z-index: 35;
+/* Speaker Notes Drawer inside #stage */
+#notes-drawer {
+  position: absolute; left: 68px; right: 68px; bottom: 54px;
+  background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--g-blue-700);
+  border-radius: 12px; box-shadow: var(--shadow-spotlight); padding: 16px 22px;
+  font-size: 14px; line-height: 1.55; color: var(--ink);
+  opacity: 0; pointer-events: none; transform: translateY(12px);
+  transition: opacity .22s ease, transform .22s ease; z-index: 35;
 }
-.notes-drawer.open { transform: translateY(0); }
-.notes-drawer strong { color: var(--primary); }
+#notes-drawer.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+#notes-drawer strong { color: var(--g-blue-700); }
 </style>
   <meta name="tags" content="BigQuery, Knowledge Catalog, Hybrid Search, GraphRAG, Sherlock">
   <meta name="deck-role" content="master">
   <meta name="catalog-visibility" content="visible">
-  <meta name="git-commit" content="fe7592b">
-  <meta name="published-at" content="2026-09-23T06:09:47Z">
+  <meta name="git-commit" content="67d71ee">
+  <meta name="published-at" content="2026-09-23T07:01:04Z">
 </head>
 <body>
 
-<div class="brand-ribbon"></div>
-
-<div class="deck" id="deck">
+<div id="stage">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
 
   <!-- ==========================================================================
-       SLIDE 1: HERO & 3-JOB ARCHITECTURE ANCHOR (3 Progressive Build Steps)
+       SLIDE 1: HERO & 3-JOB ARCHITECTURE (Full-Stage 2-Column Hero + Progressive Stack)
        ========================================================================== -->
-  <div class="s active" data-idx="0" data-steps="3"
-       data-notes="<strong>Step 0 (Overview):</strong> We use the complete 60-story Sherlock Holmes canon to prove our enterprise Agentic Data Foundation on Google Cloud. Just like enterprise contracts and tickets, Arthur Conan Doyle&apos;s canon is full of disguised identities, unreliable narrators, and multi-hop mysteries."
-       data-notes-1="<strong>Step 1 (Understand):</strong> First, we split and parse all 4 novels and 56 short stories into structured passages without losing chapter hierarchy."
-       data-notes-2="<strong>Step 2 (Connect):</strong> Next, we resolve aliases like Sigerson and Vandeleur into golden records and build a property graph in BigQuery governed by Knowledge Catalog."
-       data-notes-3="<strong>Step 3 (Serve):</strong> Finally, our ADK detective agent uses BigQuery Hybrid Search and GRAPH_TABLE to answer multi-hop questions with chapter citations.">
-    <div class="slide-header">
-      <span class="badge">SHERLOCK REFERENCE ARCHITECTURE · GOOGLE CLOUD</span>
-      <h1>Turn 60 Sherlock Holmes stories into a governed brain that AI agents trust</h1>
-      <p class="subtitle">Disguises, conflicting dates, and 60 books mirror the exact data gaps that break enterprise AI agents.</p>
+  <section class="slide active" data-idx="0" data-steps="3"
+           data-notes="<strong>Step 0 (Overview):</strong> We use the complete 60-story Sherlock Holmes canon to prove our enterprise Agentic Data Foundation on Google Cloud. Just like enterprise contracts and tickets, Arthur Conan Doyle&apos;s canon is full of disguised identities, unreliable narrators, and multi-hop mysteries."
+           data-notes-1="<strong>Step 1 (Understand):</strong> First, we split and parse all 4 novels and 56 short stories into structured passages without losing chapter hierarchy."
+           data-notes-2="<strong>Step 2 (Connect):</strong> Next, we resolve aliases like Sigerson and Vandeleur into golden records and build a property graph in BigQuery governed by Knowledge Catalog."
+           data-notes-3="<strong>Step 3 (Serve):</strong> Finally, our ADK detective agent uses BigQuery Hybrid Search and GRAPH_TABLE to answer multi-hop questions with chapter citations.">
+    <div class="hero-grid">
+      <div style="display:flex;flex-direction:column">
+        <span class="pill">Sherlock Reference Architecture</span>
+        <h1>Turn 60 stories into a <span class="hl">governed brain</span> that AI agents trust</h1>
+        <p class="sub" style="font-size:19.5px;margin-top:18px">
+          Disguised aliases, conflicting dates, and 60 unstructured books mirror the exact context gaps that break enterprise AI agents in production.
+        </p>
+        <div class="stats">
+          <div class="stat">
+            <div class="n" style="color:var(--g-blue-700)">60</div>
+            <div class="l">canonical PDFs parsed<br/>with layout hierarchy</div>
+          </div>
+          <div class="stat">
+            <div class="n" style="color:var(--g-amber-ink)">12</div>
+            <div class="l">Knowledge Catalog terms<br/>linked to BigQuery columns</div>
+          </div>
+          <div class="stat">
+            <div class="n" style="color:var(--g-green)">&gt;90%</div>
+            <div class="l">groundedness with<br/>Hybrid GraphRAG</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;justify-content:space-between" class="scaffold-group">
+        <div class="card blue" style="flex:1" data-active-step="1">
+          <div class="num">01 · UNDERSTAND</div>
+          <h3>Read the 60-Story Canon Cleanly</h3>
+          <p><strong>Preserve layout hierarchy:</strong> Split and parse 4 novels and 56 short stories into chapter chunks.</p>
+          <div class="card-foot">
+            <span class="badge-inline">parsepdf.py</span>
+            <span class="badge-inline">AI.PARSE_DOCUMENT</span>
+            <span class="badge-inline">AI.EMBED</span>
+          </div>
+        </div>
+
+        <div class="card yellow" style="flex:1" data-active-step="2">
+          <div class="num">02 · CONNECT — THE DETECTIVE BRAIN</div>
+          <h3>Unify Disguises &amp; Graph Relationships</h3>
+          <p><strong>Resolve golden entities:</strong> Merge <em>Sigerson</em> and <em>Vandeleur</em> into canonical IDs inside a property graph.</p>
+          <div class="card-foot">
+            <span class="badge-inline">5_er_judged_pairs</span>
+            <span class="badge-inline">BigQuery Graph</span>
+            <span class="badge-inline">Knowledge Catalog</span>
+          </div>
+        </div>
+
+        <div class="card green" style="flex:1" data-active-step="3">
+          <div class="num">03 · SERVE</div>
+          <h3>Answer Multi-Hop Questions with Citations</h3>
+          <p><strong>Fuse vector and keyword search:</strong> Retrieve exact clues and cite every story and chapter.</p>
+          <div class="card-foot">
+            <span class="badge-inline">AI.SEARCH Hybrid RRF</span>
+            <span class="badge-inline">GRAPH_TABLE</span>
+            <span class="badge-inline">ADK Agent</span>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <div class="arch-grid scaffold-group">
-      <div class="arch-node blue" data-active-step="1">
-        <span class="badge">1 · UNDERSTAND</span>
-        <h3>Read the 60-Story Canon</h3>
-        <p><strong>Preserve layout hierarchy:</strong> Split and parse 4 novels and 56 short stories into chapters.</p>
-        <div><span class="badge-inline">parsepdf.py</span><span class="badge-inline">AI.PARSE_DOCUMENT</span></div>
-      </div>
-
-      <div class="arch-node yellow" data-active-step="2">
-        <span class="badge yellow">2 · CONNECT</span>
-        <h3>Build the Detective Brain</h3>
-        <p><strong>Unify disguised aliases:</strong> Merge mentions into golden entities and link events in a graph.</p>
-        <div><span class="badge-inline">BigQuery Graph</span><span class="badge-inline">Knowledge Catalog</span></div>
-      </div>
-
-      <div class="arch-node green" data-active-step="3">
-        <span class="badge green">3 · SERVE</span>
-        <h3>Answer with Story Proof</h3>
-        <p><strong>Fuse vector and keyword search:</strong> Retrieve exact clues and cite every chapter.</p>
-        <div><span class="badge-inline">AI.SEARCH Hybrid</span><span class="badge-inline">ADK Agent</span></div>
-      </div>
-    </div>
-
-    <div class="callout-strip">
-      <div class="callout-card" data-build="1" data-active-step="1">
-        <strong>Literary parallel:</strong> 60 story PDFs act as your contracts, claims, and call transcripts.
-      </div>
-      <div class="callout-card" data-build="2" data-active-step="2">
-        <strong>MDM parallel:</strong> Resolving <em>Sigerson</em> to <em>Holmes</em> mirrors unifying six CRM customer records.
-      </div>
-      <div class="callout-card" data-build="3" data-active-step="3">
-        <strong>Outcome:</strong> Groundedness rises from 41% to over 90% on multi-hop questions.
-      </div>
-    </div>
-  </div>
+  </section>
 
   <!-- ==========================================================================
        SLIDE 2: UNDERSTAND — PARSING & AUTONOMOUS EMBEDDINGS (3 Build Steps)
        ========================================================================== -->
-  <div class="s" data-idx="1" data-steps="3"
-       data-notes="<strong>Step 0 (Understand Overview):</strong> Standard PDF chunking cuts tables and chapters in half, causing agents to quote fragments out of context. Here is how Stage 0 through Stage 2 solve the Unreadable gap."
-       data-notes-1="<strong>Step 1 (Canonical PDF Splitter):</strong> Our Python splitter normalizes bookmark variants across editions so all 60 stories—including The Illustrious Client and The Blanched Soldier—land cleanly in Cloud Storage."
-       data-notes-2="<strong>Step 2 (Layout-Aware Chunking):</strong> AI.PARSE_DOCUMENT reads the Object Table directly inside BigQuery SQL, preserving story titles, chapter numbers, and passage order."
-       data-notes-3="<strong>Step 3 (Autonomous Embeddings):</strong> With GENERATED ALWAYS AS AI.EMBED and a full-text SEARCH INDEX, BigQuery keeps both dense vectors and keyword indexes synchronized automatically.">
-    <div class="slide-header">
-      <span class="badge">STEP 1 · UNDERSTAND (CLOSING THE UNREADABLE GAP)</span>
-      <h2>Read every chapter cleanly and keep embeddings in sync without manual pipelines</h2>
+  <section class="slide" data-idx="1" data-steps="3"
+           data-notes="<strong>Step 0 (Understand Overview):</strong> Standard PDF chunking cuts tables and chapters in half, causing agents to quote fragments out of context. Here is how Stage 0 through Stage 2 close the Unreadable gap."
+           data-notes-1="<strong>Step 1 (Canonical PDF Splitter):</strong> Our Python splitter normalizes bookmark variants across editions so all 60 stories—including The Illustrious Client and The Blanched Soldier—land cleanly in Cloud Storage."
+           data-notes-2="<strong>Step 2 (Layout-Aware Chunking):</strong> AI.PARSE_DOCUMENT reads the Object Table directly inside BigQuery SQL, preserving story titles, chapter numbers, and passage order."
+           data-notes-3="<strong>Step 3 (Autonomous Embeddings):</strong> With GENERATED ALWAYS AS AI.EMBED and a full-text SEARCH INDEX, BigQuery keeps both dense vectors and keyword indexes synchronized automatically.">
+    <div class="slide-head">
+      <span class="eyebrow" style="color:var(--g-blue-700)">Step 1 · Understand (Closing the Unreadable Gap)</span>
+      <h2>Read every chapter cleanly and keep embeddings in sync</h2>
+      <p class="sub">No external OCR pipelines or bolt-on vector databases — BigQuery parses documents and maintains indexes in place.</p>
     </div>
 
-    <div class="arch-grid scaffold-group">
-      <div class="arch-node blue" data-active-step="1">
-        <h3>1. 60 Canonical PDFs</h3>
-        <p><strong>Reconcile edition titles:</strong> Extract all 4 novels and 56 short stories without missing pages.</p>
-        <div><span class="badge-inline">0_books_raw</span><span class="badge-inline">holmes/upload/</span></div>
+    <div class="body">
+      <div class="grid-3 scaffold-group">
+        <div class="card blue" data-active-step="1">
+          <div class="num">STAGE 0–1 · INGESTION</div>
+          <h3>60 Canonical Story PDFs</h3>
+          <p><strong>Reconcile edition titles:</strong> Normalize bookmark variants to split all 4 novels and 56 short stories without missing pages.</p>
+          <div class="card-foot">
+            <span class="badge-inline">holmes/parsepdf.py</span>
+            <span class="badge-inline">0_books_raw</span>
+          </div>
+        </div>
+
+        <div class="card yellow" data-active-step="2">
+          <div class="num">STAGE 2 · LAYOUT PARSING</div>
+          <h3>Hierarchy-Preserving Chunks</h3>
+          <p><strong>Keep chapter structure:</strong> Parse PDFs directly in BigQuery SQL while retaining story titles and chapter boundaries.</p>
+          <div class="card-foot">
+            <span class="badge-inline">AI.PARSE_DOCUMENT</span>
+            <span class="badge-inline">2_book_passages</span>
+          </div>
+        </div>
+
+        <div class="card green" data-active-step="3">
+          <div class="num">STAGE 7 · DUAL INDEXING</div>
+          <h3>Autonomous Vector + Text Index</h3>
+          <p><strong>Auto-sync vectors and text:</strong> Maintain dense embeddings and full-text search indexes inside one BigQuery table.</p>
+          <div class="card-foot">
+            <span class="badge-inline">AI.EMBED</span>
+            <span class="badge-inline">idx_passage_content_search</span>
+          </div>
+        </div>
       </div>
 
-      <div class="arch-node yellow" data-active-step="2">
-        <h3>2. Layout-Aware Passages</h3>
-        <p><strong>Keep chapter structure:</strong> Parse PDFs directly in SQL while retaining story and chapter boundaries.</p>
-        <div><span class="badge-inline">AI.PARSE_DOCUMENT</span><span class="badge-inline">2_book_passages</span></div>
-      </div>
-
-      <div class="arch-node green" data-active-step="3">
-        <h3>3. Dual Search Index</h3>
-        <p><strong>Auto-sync vectors and text:</strong> Maintain embeddings and full-text indexes inside one table.</p>
-        <div><span class="badge-inline">AI.EMBED</span><span class="badge-inline">SEARCH INDEX</span></div>
+      <div class="callout-strip">
+        <div class="callout-card" data-build="1" data-active-step="1">
+          <strong>Zero absorbed stories</strong>
+          Title normalization prevents <em>His Last Bow</em> from swallowing <em>The Illustrious Client</em>.
+        </div>
+        <div class="callout-card" data-build="2" data-active-step="2">
+          <strong>Provenance intact</strong>
+          Every passage carries its exact <code>story_id</code>, <code>chapter_num</code>, and <code>passage_id</code>.
+        </div>
+        <div class="callout-card" data-build="3" data-active-step="3">
+          <strong>Zero synchronization drift</strong>
+          Embeddings and search indexes update automatically when passages change.
+        </div>
       </div>
     </div>
-
-    <div class="callout-strip">
-      <div class="callout-card" data-build="1" data-active-step="1">
-        <strong>Zero absorbed stories:</strong> Title normalization prevents <em>His Last Bow</em> from swallowing later stories.
-      </div>
-      <div class="callout-card" data-build="2" data-active-step="2">
-        <strong>Provenance intact:</strong> Every chunk carries its exact <code>story_id</code> and <code>chapter_num</code>.
-      </div>
-      <div class="callout-card" data-build="3" data-active-step="3">
-        <strong>No bolt-on vector DB:</strong> One BigQuery table stores text, embeddings, and search indexes.
-      </div>
-    </div>
-  </div>
+  </section>
 
   <!-- ==========================================================================
        SLIDE 3: CONNECT — ENTITY RESOLUTION & ALIAS SURVIVORSHIP (3 Build Steps)
        ========================================================================== -->
-  <div class="s" data-idx="2" data-steps="3"
-       data-notes="<strong>Step 0 (Entity Resolution):</strong> In the canon, Sherlock Holmes disguises himself as the Norwegian explorer Sigerson, the book collector Altamont, and Captain Basil. Stapleton hides behind the name Vandeleur. Without entity resolution, multi-hop questions fail."
-       data-notes-1="<strong>Step 1 (Raw Mentions):</strong> Gemini extracts every raw character mention per passage into 4_stg_character_mentions before any deduplication occurs."
-       data-notes-2="<strong>Step 2 (Match Adjudication):</strong> Vector blocking finds candidate pairs, and LLM adjudication records both accepted and rejected pairs in 5_er_judged_pairs for auditability."
-       data-notes-3="<strong>Step 3 (Canonical Golden Record):</strong> Connected components collapse all aliases into one char_id in 6_characters, backed by the 6_char_resolution_map crosswalk.">
-    <div class="slide-header">
-      <span class="badge yellow">STEP 2A · CONNECT (ENTITY RESOLUTION)</span>
-      <h2>Merge disguised aliases like &ldquo;Sigerson&rdquo; and &ldquo;Vandeleur&rdquo; into one golden record</h2>
+  <section class="slide" data-idx="2" data-steps="3"
+           data-notes="<strong>Step 0 (Entity Resolution):</strong> In the canon, Sherlock Holmes disguises himself as the Norwegian explorer Sigerson, the book collector Altamont, and Captain Basil. Stapleton hides behind the name Vandeleur. Without entity resolution, multi-hop questions fail."
+           data-notes-1="<strong>Step 1 (Raw Mentions):</strong> Gemini extracts every raw character mention per passage into 4_stg_character_mentions before any deduplication occurs."
+           data-notes-2="<strong>Step 2 (Match Adjudication):</strong> Vector blocking finds candidate pairs, and LLM adjudication records both accepted and rejected pairs in 5_er_judged_pairs for auditability."
+           data-notes-3="<strong>Step 3 (Canonical Golden Record):</strong> Connected components collapse all aliases into one char_id in 6_characters, backed by the 6_char_resolution_map crosswalk.">
+    <div class="slide-head">
+      <span class="eyebrow" style="color:var(--g-amber-ink)">Step 2A · Connect (Entity Resolution &amp; MDM Survivorship)</span>
+      <h2>Merge disguised aliases like &ldquo;Sigerson&rdquo; and &ldquo;Vandeleur&rdquo; into one ID</h2>
+      <p class="sub">Just as one enterprise customer appears under six CRM records, characters in the canon operate under multiple disguises.</p>
     </div>
 
-    <div class="arch-grid scaffold-group">
-      <div class="arch-node red" data-active-step="1">
-        <h3>1. Raw Story Mentions</h3>
-        <p><strong>Capture exact text:</strong> Record every name variant exactly as written in the story passage.</p>
-        <div><span class="badge-inline">4_stg_character_mentions</span></div>
+    <div class="body">
+      <div class="grid-3 scaffold-group">
+        <div class="card red" data-active-step="1">
+          <div class="num">STAGE 4 · RAW EXTRACTION</div>
+          <h3>Unresolved Story Mentions</h3>
+          <p><strong>Capture verbatim names:</strong> Record every character and place mention exactly as written in the source passage.</p>
+          <div class="card-foot">
+            <span class="badge-inline">4_stg_character_mentions</span>
+            <span class="badge-inline">Mention Term</span>
+          </div>
+        </div>
+
+        <div class="card yellow" data-active-step="2">
+          <div class="num">STAGE 5 · MATCH ADJUDICATION</div>
+          <h3>Vector Blocking &amp; Pair Review</h3>
+          <p><strong>Judge candidate pairs:</strong> Score vector similarity pairs and retain rejected matches for governance auditability.</p>
+          <div class="card-foot">
+            <span class="badge-inline">5_er_judged_pairs</span>
+            <span class="badge-inline">is_same_entity</span>
+          </div>
+        </div>
+
+        <div class="card green" data-active-step="3">
+          <div class="num">STAGE 6 · GOLDEN RECORDS</div>
+          <h3>Canonical Entity &amp; Crosswalk</h3>
+          <p><strong>Unify under one ID:</strong> Collapse all aliases into a single golden character record with a full survivorship map.</p>
+          <div class="card-foot">
+            <span class="badge-inline">6_characters</span>
+            <span class="badge-inline">6_char_resolution_map</span>
+          </div>
+        </div>
       </div>
 
-      <div class="arch-node yellow" data-active-step="2">
-        <h3>2. Pair Adjudication</h3>
-        <p><strong>Judge candidate matches:</strong> Score vector pairs and retain rejected matches for steward audit.</p>
-        <div><span class="badge-inline">5_er_judged_pairs</span><span class="badge-inline">is_same_entity</span></div>
-      </div>
-
-      <div class="arch-node green" data-active-step="3">
-        <h3>3. Golden Entity &amp; Crosswalk</h3>
-        <p><strong>Unify under one ID:</strong> Merge all disguises into one canonical character record.</p>
-        <div><span class="badge-inline">6_characters</span><span class="badge-inline">6_char_resolution_map</span></div>
+      <div class="callout-strip">
+        <div class="callout-card" data-build="1" data-active-step="1">
+          <strong>Holmes undercover</strong>
+          Appears across the canon as <em>Sigerson</em>, <em>Altamont</em>, and <em>Captain Basil</em>.
+        </div>
+        <div class="callout-card" data-build="2" data-active-step="2">
+          <strong>Auditable decisions</strong>
+          Agents call <code>audit_entity_resolution</code> to inspect accepted and rejected merges.
+        </div>
+        <div class="callout-card" data-build="3" data-active-step="3">
+          <strong>The Baskerville villain</strong>
+          Unifies <em>Stapleton</em>, <em>Vandeleur</em>, and <em>Rodger Baskerville</em> under one <code>char_id</code>.
+        </div>
       </div>
     </div>
-
-    <div class="callout-strip">
-      <div class="callout-card" data-build="1" data-active-step="1">
-        <strong>Holmes disguises:</strong> Appears as <em>Sigerson</em>, <em>Altamont</em>, and <em>Captain Basil</em> across books.
-      </div>
-      <div class="callout-card" data-build="2" data-active-step="2">
-        <strong>Audit trail preserved:</strong> Agents query <code>audit_entity_resolution</code> to explain why pairs merged.
-      </div>
-      <div class="callout-card" data-build="3" data-active-step="3">
-        <strong>Villain unmasked:</strong> <em>Stapleton</em>, <em>Vandeleur</em>, and <em>Rodger Baskerville</em> share one <code>char_id</code>.
-      </div>
-    </div>
-  </div>
+  </section>
 
   <!-- ==========================================================================
-       SLIDE 4: CONNECT — KNOWLEDGE CATALOG & BIGQUERY GRAPH (3 Build Steps)
+       SLIDE 4: CONNECT — BIGQUERY KNOWLEDGE CATALOG & GRAPH (3 Build Steps)
        ========================================================================== -->
-  <div class="s" data-idx="3" data-steps="3"
-       data-notes="<strong>Step 0 (Knowledge Catalog &amp; Graph):</strong> A graph without agreed definitions still leaves data Unexplained. We govern the BigQuery Property Graph with 12 business glossary terms in BigQuery Knowledge Catalog."
-       data-notes-1="<strong>Step 1 (Entity Resolution Terms):</strong> Five Knowledge Catalog terms—Mention, Alias, Canonical Entity, Resolution Map, and Match Adjudication—are linked directly to the Stage 4–6 schema columns."
-       data-notes-2="<strong>Step 2 (Provenance Terms):</strong> Three terms govern trust and time: Source Document, Narrator / Source of Record (Watson narrates 53 stories and makes mistakes; Holmes narrates 2), and Record Date vs Event Date (The Gloria Scott was published in 1893 but set in 1874)."
-       data-notes-3="<strong>Step 3 (Graph Model Terms):</strong> Four terms govern the property graph: Event, Participant Role, Relationship Type (standardized via AI.CLASSIFY into 6_char_relationships_governed), and Location Hierarchy (221B Baker Street -> Baker Street -> London).">
-    <div class="slide-header">
-      <span class="badge">STEP 2B · GOVERN (BIGQUERY KNOWLEDGE CATALOG)</span>
-      <h2>Connect characters, events, and places under a shared Knowledge Catalog glossary</h2>
+  <section class="slide" data-idx="3" data-steps="3"
+           data-notes="<strong>Step 0 (Knowledge Catalog &amp; Graph):</strong> A graph without agreed definitions still leaves data Unexplained. We govern the BigQuery Property Graph with 12 business glossary terms in BigQuery Knowledge Catalog."
+           data-notes-1="<strong>Step 1 (Entity Resolution Terms):</strong> Five Knowledge Catalog terms—Mention, Alias, Canonical Entity, Resolution Map, and Match Adjudication—are linked directly to the Stage 4–6 schema columns."
+           data-notes-2="<strong>Step 2 (Provenance Terms):</strong> Three terms govern trust and time: Source Document, Narrator / Source of Record (Watson narrates 53 stories and makes mistakes; Holmes narrates 2), and Record Date vs Event Date (The Gloria Scott was published in 1893 but set in 1874)."
+           data-notes-3="<strong>Step 3 (Graph Model Terms):</strong> Four terms govern the property graph: Event, Participant Role, Relationship Type (standardized via AI.CLASSIFY into 6_char_relationships_governed), and Location Hierarchy (221B Baker Street -> Baker Street -> London).">
+    <div class="slide-head">
+      <span class="eyebrow" style="color:var(--g-blue-700)">Step 2B · Govern (BigQuery Knowledge Catalog &amp; Property Graph)</span>
+      <h2>Connect characters, events, and places under a shared business glossary</h2>
+      <p class="sub">12 governed business terms in <b>BigQuery Knowledge Catalog</b> attach directly to physical BigQuery columns and graph edges.</p>
     </div>
 
-    <div class="arch-grid scaffold-group">
-      <div class="arch-node blue" data-active-step="1">
-        <span class="badge">ENTITY RESOLUTION (5 TERMS)</span>
-        <h3>Survivorship Lineage</h3>
-        <p><strong>Link terms to columns:</strong> Attach <em>Canonical Entity</em> and <em>Alias</em> chips directly to BigQuery tables.</p>
-        <div><span class="badge-inline">attachTerms.sh</span><span class="badge-inline">6_characters.char_id</span></div>
+    <div class="body">
+      <div class="grid-3 scaffold-group">
+        <div class="card blue" data-active-step="1">
+          <div class="num">CATEGORY 1 · ENTITY RESOLUTION</div>
+          <h3>5 Survivorship Terms</h3>
+          <p><strong>Link glossary to columns:</strong> Attach <em>Canonical Entity</em>, <em>Alias</em>, and <em>Resolution Map</em> chips directly to BigQuery schemas.</p>
+          <div class="card-foot">
+            <span class="badge-inline">createAll.sh</span>
+            <span class="badge-inline">attachTerms.sh</span>
+          </div>
+        </div>
+
+        <div class="card red" data-active-step="2">
+          <div class="num">CATEGORY 2 · PROVENANCE</div>
+          <h3>3 Trust &amp; Timeline Terms</h3>
+          <p><strong>Separate record from event:</strong> Track who narrated each story and when the event occurred vs. publication year.</p>
+          <div class="card-foot">
+            <span class="badge-inline">story_metadata.narrator</span>
+            <span class="badge-inline">in_story_year</span>
+          </div>
+        </div>
+
+        <div class="card green" data-active-step="3">
+          <div class="num">CATEGORY 3 · GRAPH MODEL</div>
+          <h3>4 Property Graph Terms</h3>
+          <p><strong>Standardize graph edges:</strong> Classify raw LLM verbs into controlled categories and roll up location hierarchies.</p>
+          <div class="card-foot">
+            <span class="badge-inline">AI.CLASSIFY</span>
+            <span class="badge-inline">sherlock.story_graph</span>
+          </div>
+        </div>
       </div>
 
-      <div class="arch-node red" data-active-step="2">
-        <span class="badge red">PROVENANCE (3 TERMS)</span>
-        <h3>Trust &amp; Timeline Rules</h3>
-        <p><strong>Separate record from event:</strong> Track who narrated each story and when events actually occurred.</p>
-        <div><span class="badge-inline">story_metadata.narrator</span><span class="badge-inline">in_story_year</span></div>
-      </div>
-
-      <div class="arch-node green" data-active-step="3">
-        <span class="badge green">GRAPH MODEL (4 TERMS)</span>
-        <h3>Controlled Graph Edges</h3>
-        <p><strong>Standardize relationships:</strong> Map raw LLM verbs into governed categories and roll up locations.</p>
-        <div><span class="badge-inline">AI.CLASSIFY</span><span class="badge-inline">sherlock.story_graph</span></div>
+      <div class="callout-strip">
+        <div class="callout-card" data-build="1" data-active-step="1">
+          <strong>Schema-level lineage</strong>
+          Clicking <code>6_characters.char_id</code> in BigQuery opens the <em>Canonical Entity</em> term.
+        </div>
+        <div class="callout-card" data-build="2" data-active-step="2">
+          <strong>Booking vs. transaction date</strong>
+          <em>The Gloria Scott</em> was published in 1893 (<code>record_date</code>) but set in 1874 (<code>event_date</code>).
+        </div>
+        <div class="callout-card" data-build="3" data-active-step="3">
+          <strong>Containment roll-ups</strong>
+          <em>221B Baker Street</em> rolls up through <em>Baker Street</em> to <em>London</em> and <em>England</em>.
+        </div>
       </div>
     </div>
-
-    <div class="callout-strip">
-      <div class="callout-card" data-build="1" data-active-step="1">
-        <strong>Live schema links:</strong> Clicking <code>char_id</code> in BigQuery opens the <em>Canonical Entity</em> definition.
-      </div>
-      <div class="callout-card" data-build="2" data-active-step="2">
-        <strong>Temporal gap caught:</strong> <em>The Gloria Scott</em> was published in 1893 but took place in 1874.
-      </div>
-      <div class="callout-card" data-build="3" data-active-step="3">
-        <strong>Location roll-up:</strong> <em>221B Baker Street</em> rolls up through <em>Baker Street</em> to <em>London</em>.
-      </div>
-    </div>
-  </div>
+  </section>
 
   <!-- ==========================================================================
        SLIDE 5: SERVE — BIGQUERY HYBRID SEARCH + GRAPHRAG SQL (2 Build Steps)
        ========================================================================== -->
-  <div class="s" data-idx="4" data-steps="2"
-       data-notes="<strong>Step 0 (The Pure-Vector Blind Spot):</strong> In GraphRAG, passage retrieval gates the entire graph traversal. Pure cosine vector search struggles with rare Victorian names like Vandeleur or Grimpen Mire. If Step 2 misses the passage, GRAPH_TABLE never fires."
-       data-notes-1="<strong>Step 1 (Hybrid Reciprocal Rank Fusion):</strong> We upgraded graphrag_answer to combine dense VECTOR_SEARCH with full-text lexical scoring via Reciprocal Rank Fusion (RRF). Exact proper-noun matches are guaranteed to enter the top 8 passages."
-       data-notes-2="<strong>Step 2 (2-Tier BigQuery Graph Expansion):</strong> Once Hybrid Search locks onto the right passages, GRAPH_TABLE traverses sherlock.story_graph to pull Tier-1 passage events, Tier-2 cross-story events, and aliases.">
-    <div class="slide-header">
-      <span class="badge green">STEP 3A · SERVE (BIGQUERY HYBRID SEARCH + GRAPH_TABLE)</span>
-      <h2>Combine vector and keyword search so rare names like &ldquo;Grimpen Mire&rdquo; never get missed</h2>
+  <section class="slide" data-idx="4" data-steps="2"
+           data-notes="<strong>Step 0 (The Pure-Vector Blind Spot):</strong> In GraphRAG, passage retrieval gates the entire graph traversal. Pure cosine vector search struggles with rare Victorian names like Vandeleur or Grimpen Mire. If Step 2 misses the passage, GRAPH_TABLE never fires."
+           data-notes-1="<strong>Step 1 (Hybrid Reciprocal Rank Fusion):</strong> We upgraded graphrag_answer to combine dense VECTOR_SEARCH with full-text lexical scoring via Reciprocal Rank Fusion (RRF). Exact proper-noun matches are guaranteed to enter the top 8 passages."
+           data-notes-2="<strong>Step 2 (2-Tier BigQuery Graph Expansion):</strong> Once Hybrid Search locks onto the right passages, GRAPH_TABLE traverses sherlock.story_graph to pull Tier-1 passage events, Tier-2 cross-story events, and aliases.">
+    <div class="slide-head">
+      <span class="eyebrow" style="color:var(--g-green)">Step 3A · Serve (BigQuery Hybrid Search + BigQuery Graph)</span>
+      <h2>Combine vector and keyword search so rare names never get missed</h2>
+      <p class="sub">Initial passage retrieval seeds the graph query — fusing dense vectors with lexical search guarantees exact entity recall.</p>
     </div>
 
     <div class="split-grid">
       <div class="code-panel scaffold-group">
         <div class="code-line" data-active-step="1">
-          <span class="cm">-- 1. Hybrid Search: Dense Vector + Full-Text RRF Fusion</span><br/>
+          <span class="cm">-- 1. Hybrid Search: Vector + Full-Text Reciprocal Rank Fusion</span><br/>
           <span class="kw">CREATE TEMP TABLE</span> hits <span class="kw">AS</span><br/>
-          <span class="kw">SELECT</span> passage_id, story_id, content,<br/>
+          <span class="kw">SELECT</span> passage_id, story_id, chapter_num, content,<br/>
           &nbsp;&nbsp;(1.0 / (60 + sem_rank)) + (1.0 / (60 + lex_rank)) <span class="kw">AS</span> rrf_score<br/>
-          <span class="kw">FROM</span> semantic_hits <span class="kw">FULL JOIN</span> lexical_hits <span class="kw">USING</span> (passage_id)
+          <span class="kw">FROM</span> semantic_hits <span class="kw">FULL JOIN</span> lexical_hits <span class="kw">USING</span> (passage_id)<br/>
+          <span class="kw">ORDER BY</span> rrf_score <span class="kw">DESC LIMIT</span> 8;
         </div>
-        <div class="code-line" data-active-step="2" style="margin-top:10px">
-          <span class="cm">-- 2. Expand Multi-Hop Context via BigQuery Graph (ISO GQL)</span><br/>
+        <div class="code-line" data-active-step="2">
+          <span class="cm">-- 2. Multi-Hop Context Expansion via BigQuery Graph (ISO GQL)</span><br/>
           <span class="kw">SELECT</span> g.* <span class="kw">FROM</span> <span class="fn">GRAPH_TABLE</span>(<br/>
           &nbsp;&nbsp;`sherlock.story_graph`<br/>
           &nbsp;&nbsp;<span class="kw">MATCH</span> (c:Character)-[p:PARTICIPATED_IN]-&gt;(e:Event)<br/>
           &nbsp;&nbsp;<span class="kw">OPTIONAL MATCH</span> (e)-[:OCCURRED_AT]-&gt;(l:Location)<br/>
+          &nbsp;&nbsp;<span class="kw">RETURN</span> e.event_name, c.canonical_name, p.role, l.canonical_name<br/>
           ) g <span class="kw">JOIN</span> hit_events <span class="kw">USING</span> (event_id);
         </div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="card red">
-          <h3>Before: Pure Cosine Vector Search</h3>
-          <p><strong>Misses rare aliases:</strong> Dense embeddings blur exact proper nouns like <em>Vandeleur</em>, starving the graph query.</p>
+      <div style="display:flex;flex-direction:column;justify-content:space-between;gap:14px">
+        <div class="card red" style="flex:1">
+          <div class="num">THE BOTTLENECK</div>
+          <h3>Why Pure Vector RAG Fails GraphRAG</h3>
+          <p><strong>Misses proper nouns:</strong> Dense embeddings blur rare aliases like <em>Vandeleur</em> or <em>Grimpen Mire</em>, starving downstream graph expansion.</p>
         </div>
 
-        <div class="card blue" data-build="1" data-active-step="1">
-          <h3>Step 1: Hybrid RRF Lock-On</h3>
-          <p><strong>Semantic + lexical fusion:</strong> Keyword specificity catches exact names while vectors capture narrative themes.</p>
-          <div><span class="badge-inline">AI.SEARCH</span><span class="badge-inline">VECTOR_SEARCH + SEARCH</span></div>
+        <div class="card blue" style="flex:1" data-build="1" data-active-step="1">
+          <div class="num">STEP 1 · HYBRID RRF RETRIEVAL</div>
+          <h3>Semantic + Lexical Lock-On</h3>
+          <p><strong>Best of both indexes:</strong> Lexical specificity catches exact Victorian names while vector search captures thematic meaning.</p>
         </div>
 
-        <div class="card green" data-build="2" data-active-step="2">
-          <h3>Step 2: 2-Tier Graph Traversal</h3>
-          <p><strong>Unmask multi-hop motives:</strong> Traverses characters, disguises, and locations in one SQL procedure.</p>
-          <div><span class="badge-inline">graphrag_answer</span><span class="badge-inline">GRAPH_TABLE</span></div>
+        <div class="card green" style="flex:1" data-build="2" data-active-step="2">
+          <div class="num">STEP 2 · 2-TIER GRAPH EXPANSION</div>
+          <h3>Single-Engine Graph Traversal</h3>
+          <p><strong>Unmask multi-hop motives:</strong> Traverses characters, roles, relationships, and aliases inside one SQL procedure.</p>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
   <!-- ==========================================================================
        SLIDE 6: SERVE — ADK AGENT & LIVE QUERY PROOF (3 Build Steps)
        ========================================================================== -->
-  <div class="s" data-idx="5" data-steps="3"
-       data-notes="<strong>Step 0 (ADK Detective Agent):</strong> We upgraded sherlock_investigator in sherlock_agent/agent.py from 2 static tools to 5 governed tools that close the loop with BigQuery Knowledge Catalog."
-       data-notes-1="<strong>Step 1 (Identity &amp; Catalog Tools):</strong> character_profile and lookup_knowledge_catalog query BigQuery and Knowledge Catalog live at runtime—never relying on stale prompt text."
-       data-notes-2="<strong>Step 2 (Governance &amp; Audit Tools):</strong> audit_entity_resolution and inspect_provenance_and_hierarchy expose 5_er_judged_pairs, story_metadata, and 6_located_in during live executive Q&amp;A."
-       data-notes-3="<strong>Step 3 (Hybrid GraphRAG Synthesis):</strong> When asked &apos;Who operated under the alias Vandeleur and what happened at Grimpen Mire?&apos;, ask_canon unmasks Stapleton (Rodger Baskerville) and cites Chapters XIV and XV of The Hound of the Baskervilles.">
-    <div class="slide-header">
-      <span class="badge">STEP 3B · SERVE (ADK AGENT IN ACTION)</span>
-      <h2>Route detective questions to five governed tools with cited story proof</h2>
+  <section class="slide" data-idx="5" data-steps="3"
+           data-notes="<strong>Step 0 (ADK Detective Agent):</strong> We upgraded sherlock_investigator in sherlock_agent/agent.py from 2 static tools to 5 governed tools that close the loop with BigQuery Knowledge Catalog."
+           data-notes-1="<strong>Step 1 (Identity &amp; Catalog Tools):</strong> character_profile and lookup_knowledge_catalog query BigQuery and Knowledge Catalog live at runtime—never relying on stale prompt text."
+           data-notes-2="<strong>Step 2 (Governance &amp; Audit Tools):</strong> audit_entity_resolution and inspect_provenance_and_hierarchy expose 5_er_judged_pairs, story_metadata, and 6_located_in during live executive Q&amp;A."
+           data-notes-3="<strong>Step 3 (Hybrid GraphRAG Synthesis):</strong> When asked &apos;Who operated under the alias Vandeleur and what happened at Grimpen Mire?&apos;, ask_canon unmasks Stapleton (Rodger Baskerville) and cites Chapters XIV and XV of The Hound of the Baskervilles.">
+    <div class="slide-head">
+      <span class="eyebrow" style="color:var(--g-blue-700)">Step 3B · Serve (ADK Detective Agent in Action)</span>
+      <h2>Route detective questions to five governed tools with cited proof</h2>
+      <p class="sub"><code>sherlock_investigator</code> dynamically queries <b>BigQuery Knowledge Catalog</b>, entity-resolution audit tables, and Hybrid GraphRAG.</p>
     </div>
 
-    <div class="arch-grid scaffold-group">
-      <div class="arch-node blue" data-active-step="1">
-        <h3>Identity &amp; Catalog Lookup</h3>
-        <p><strong>Query definitions live:</strong> Fetch resolved aliases and Knowledge Catalog glossary terms on demand.</p>
-        <div><span class="badge-inline">character_profile</span><span class="badge-inline">lookup_knowledge_catalog</span></div>
+    <div class="body">
+      <div class="grid-3 scaffold-group">
+        <div class="card blue" data-active-step="1">
+          <div class="num">TOOLS 1 &amp; 2 · IDENTITY &amp; CATALOG</div>
+          <h3>Live Glossary &amp; Alias Lookup</h3>
+          <p><strong>Query definitions at runtime:</strong> Fetch resolved character aliases and live Knowledge Catalog glossary terms on demand.</p>
+          <div class="card-foot">
+            <span class="badge-inline">character_profile</span>
+            <span class="badge-inline">lookup_knowledge_catalog</span>
+          </div>
+        </div>
+
+        <div class="card yellow" data-active-step="2">
+          <div class="num">TOOLS 3 &amp; 4 · GOVERNANCE AUDIT</div>
+          <h3>Lineage, Provenance &amp; Roll-Ups</h3>
+          <p><strong>Verify every merge decision:</strong> Inspect judged entity pairs, narrator reliability, and London location hierarchies.</p>
+          <div class="card-foot">
+            <span class="badge-inline">audit_entity_resolution</span>
+            <span class="badge-inline">inspect_provenance</span>
+          </div>
+        </div>
+
+        <div class="card green" data-active-step="3">
+          <div class="num">TOOL 5 · HYBRID GRAPHRAG</div>
+          <h3>Grounded Story Synthesis</h3>
+          <p><strong>Cite chapter and verse:</strong> Synthesize tiered graph evidence and retrieved passages with zero hallucinated sources.</p>
+          <div class="card-foot">
+            <span class="badge-inline">ask_canon</span>
+            <span class="badge-inline">gemini-2.5-flash</span>
+          </div>
+        </div>
       </div>
 
-      <div class="arch-node yellow" data-active-step="2">
-        <h3>Lineage &amp; Provenance Audit</h3>
-        <p><strong>Verify every merge:</strong> Inspect judged entity pairs, narrator reliability, and London location roll-ups.</p>
-        <div><span class="badge-inline">audit_entity_resolution</span><span class="badge-inline">inspect_provenance</span></div>
-      </div>
-
-      <div class="arch-node green" data-active-step="3">
-        <h3>Hybrid GraphRAG Synthesis</h3>
-        <p><strong>Cite chapter and verse:</strong> Synthesize tiered graph evidence and passages with zero hallucination.</p>
-        <div><span class="badge-inline">ask_canon</span><span class="badge-inline">gemini-2.5-flash</span></div>
+      <div class="callout-strip">
+        <div class="callout-card" data-build="1" data-active-step="1">
+          <strong>Closed governance loop</strong>
+          Updating a term in Knowledge Catalog updates agent context without code changes.
+        </div>
+        <div class="callout-card" data-build="2" data-active-step="2">
+          <strong>Defensible MDM</strong>
+          Surfaces exact cosine distances for both accepted and rejected alias pairs.
+        </div>
+        <div class="callout-card" data-build="3" data-active-step="3">
+          <strong>Verified live query</strong>
+          Unmasks <em>Vandeleur</em> as <em>Stapleton</em> and cites <em>Hound of the Baskervilles</em> Ch. XIV–XV.
+        </div>
       </div>
     </div>
-
-    <div class="callout-strip">
-      <div class="callout-card" data-build="1" data-active-step="1">
-        <strong>Dynamic context:</strong> Updating a term in Knowledge Catalog updates agent context immediately.
-      </div>
-      <div class="callout-card" data-build="2" data-active-step="2">
-        <strong>Defensible MDM:</strong> Shows cosine distance scores for both accepted and rejected alias pairs.
-      </div>
-      <div class="callout-card" data-build="3" data-active-step="3">
-        <strong>Live proof:</strong> Identifies <em>Vandeleur</em> as <em>Stapleton</em> and cites <em>Hound of the Baskervilles</em> Ch. XIV–XV.
-      </div>
-    </div>
-  </div>
+  </section>
 
   <!-- ==========================================================================
        SLIDE 7: 90-DAY ROLLOUT PATH (3 Build Steps)
        ========================================================================== -->
-  <div class="s" data-idx="6" data-steps="3"
-       data-notes="<strong>Step 0 (90-Day Path):</strong> The Sherlock demo proves that you do not need a multi-year data consolidation project to build an enterprise business brain. Here is the 90-day rollout path."
-       data-notes-1="<strong>Step 1 (Days 0–30):</strong> Pick one domain, agree on 20 golden business questions, ingest documents via AI.PARSE_DOCUMENT, and benchmark BigQuery Hybrid Search."
-       data-notes-2="<strong>Step 2 (Days 31–60):</strong> Stand up entity resolution adjudication, build the BigQuery Property Graph, and attach Knowledge Catalog business terms."
-       data-notes-3="<strong>Step 3 (Days 61–90):</strong> Deploy the ADK agent with caller permissions enforced at retrieval, prove >90% groundedness, and onboard Domain #2 at a fraction of the cost.">
-    <div class="slide-header">
-      <span class="badge green">THE PATH TO PRODUCTION · 90 DAYS</span>
-      <h2>Build the shared knowledge layer in 90 days and reuse it across every domain</h2>
+  <section class="slide" data-idx="6" data-steps="3"
+           data-notes="<strong>Step 0 (90-Day Path):</strong> The Sherlock demo proves that you do not need a multi-year data consolidation project to build an enterprise business brain. Here is the 90-day rollout path."
+           data-notes-1="<strong>Step 1 (Days 0–30):</strong> Pick one domain, agree on 20 golden business questions, ingest documents via AI.PARSE_DOCUMENT, and benchmark BigQuery Hybrid Search."
+           data-notes-2="<strong>Step 2 (Days 31–60):</strong> Stand up entity resolution adjudication, build the BigQuery Property Graph, and attach Knowledge Catalog business terms."
+           data-notes-3="<strong>Step 3 (Days 61–90):</strong> Deploy the ADK agent with caller permissions enforced at retrieval, prove >90% groundedness, and onboard Domain #2 at a fraction of the cost.">
+    <div class="slide-head">
+      <span class="eyebrow" style="color:var(--g-green)">The Path to Production · 90 Days</span>
+      <h2>Build the shared knowledge layer in 90 days and reuse it everywhere</h2>
+      <p class="sub">Establish the ingestion pipeline, Knowledge Catalog taxonomy, and evaluation harness once — then compound across every domain.</p>
     </div>
 
-    <div class="arch-grid scaffold-group">
-      <div class="arch-node blue" data-active-step="1">
-        <span class="badge">DAYS 0–30</span>
-        <h3>Frame &amp; Parse</h3>
-        <p><strong>Score 20 golden questions:</strong> Parse domain documents in BigQuery and baseline hybrid search recall.</p>
-        <div><span class="badge-inline">AI.PARSE_DOCUMENT</span><span class="badge-inline">AI.SEARCH</span></div>
+    <div class="body">
+      <div class="grid-3 scaffold-group">
+        <div class="card blue" data-active-step="1">
+          <div class="num">DAYS 0–30 · UNDERSTAND</div>
+          <h3>Frame &amp; Parse Domain 1</h3>
+          <p><strong>Score 20 golden questions:</strong> Parse domain documents in BigQuery and benchmark hybrid search recall against naive RAG.</p>
+          <div class="card-foot">
+            <span class="badge-inline">AI.PARSE_DOCUMENT</span>
+            <span class="badge-inline">AI.SEARCH Hybrid</span>
+          </div>
+        </div>
+
+        <div class="card yellow" data-active-step="2">
+          <div class="num">DAYS 31–60 · CONNECT</div>
+          <h3>Resolve &amp; Govern the Brain</h3>
+          <p><strong>Link entities and glossary:</strong> Stand up match adjudication, build the property graph, and attach Knowledge Catalog terms.</p>
+          <div class="card-foot">
+            <span class="badge-inline">BigQuery Graph</span>
+            <span class="badge-inline">Knowledge Catalog</span>
+          </div>
+        </div>
+
+        <div class="card green" data-active-step="3">
+          <div class="num">DAYS 61–90 · SERVE &amp; SCALE</div>
+          <h3>Deploy ADK &amp; Onboard Domain 2</h3>
+          <p><strong>Enforce permissions live:</strong> Prove &gt;90% groundedness on the golden set and extend the shared brain to Domain 2.</p>
+          <div class="card-foot">
+            <span class="badge-inline">&gt;90% Groundedness</span>
+            <span class="badge-inline">Compounding Reuse</span>
+          </div>
+        </div>
       </div>
 
-      <div class="arch-node yellow" data-active-step="2">
-        <span class="badge yellow">DAYS 31–60</span>
-        <h3>Connect &amp; Govern</h3>
-        <p><strong>Resolve golden entities:</strong> Build the property graph and link business terms in Knowledge Catalog.</p>
-        <div><span class="badge-inline">BigQuery Graph</span><span class="badge-inline">Knowledge Catalog</span></div>
-      </div>
-
-      <div class="arch-node green" data-active-step="3">
-        <span class="badge green">DAYS 61–90</span>
-        <h3>Serve &amp; Compound</h3>
-        <p><strong>Go live with ADK:</strong> Enforce caller permissions at retrieval and extend the brain to Domain 2.</p>
-        <div><span class="badge-inline">&gt;90% Groundedness</span><span class="badge-inline">Reusable Pipeline</span></div>
+      <div class="callout-strip">
+        <div class="callout-card" data-build="1" data-active-step="1">
+          <strong>Next step: 2-hour workshop</strong>
+          Bring your top 20 cross-system business questions to map your 5 Context Gaps.
+        </div>
+        <div class="callout-card" data-build="2" data-active-step="2">
+          <strong>Built once, reused as-is</strong>
+          Pipeline, governance model, and evaluation harness carry straight into Domain 2.
+        </div>
+        <div class="callout-card" data-build="3" data-active-step="3">
+          <strong>Compounding enterprise brain</strong>
+          Every new domain enriches the shared entity graph for all agents.
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="callout-strip">
-      <div class="callout-card" data-build="1" data-active-step="1">
-        <strong>Next step:</strong> 2-hour discovery workshop using your top 20 cross-system business questions.
-      </div>
-      <div class="callout-card" data-build="2" data-active-step="2">
-        <strong>Built once:</strong> Ingestion, entity adjudication, and Knowledge Catalog taxonomy are reusable assets.
-      </div>
-      <div class="callout-card" data-build="3" data-active-step="3">
-        <strong>Compounding returns:</strong> Every new domain makes the shared enterprise brain smarter.
-      </div>
-    </div>
+  <!-- Step-Aware Speaker Notes Drawer -->
+  <div id="notes-drawer"></div>
+
+  <!-- Integrated Stage Chrome (Matches Executive Solution Deck) -->
+  <div id="chrome">
+    <div id="dots"></div>
+    <div class="spacer"></div>
+    <span class="meta" id="meta">Sherlock Knowledge Layer · Slide 1/7 (Step 0/3)</span>
+    <a class="navBtn" href="/p/agentic-data-foundation-deck" target="_blank" title="Open Executive Solution Deck">Exec Deck</a>
+    <a class="navBtn" href="/p/solution-brief-knowledge-catalog" target="_blank" title="Open Print-Ready Solution Brief">Solution Brief</a>
+    <button class="navBtn" id="notesBtn" onclick="toggleNotes()" title="Toggle Speaker Notes (N)">Notes (N)</button>
+    <button class="navBtn" onclick="openPresenter()" title="Open Synchronized Presenter View (P)">Presenter (P)</button>
+    <button class="navBtn" onclick="prev()" title="Previous Step / Slide (Left Arrow)">&#8249;</button>
+    <button class="navBtn" onclick="next()" title="Next Step / Slide (Right Arrow / Space)">&#8250;</button>
+    <button class="navBtn" id="themeBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme (T)">Dark</button>
   </div>
-
-</div>
-
-<!-- Step-Aware Speaker Notes Drawer -->
-<div class="notes-drawer" id="notes-drawer"></div>
-<div class="progress" id="prog"></div>
-
-<!-- Bottom Navigation & Theme Controls -->
-<div class="chrome-bar">
-  <button class="ctrl-btn" onclick="show(0, 0)" title="Home (H)">⌂ Home</button>
-  <button class="ctrl-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle Light/Dark Theme (T)">🌙 Dark</button>
-  <button class="ctrl-btn" id="notes-btn" onclick="toggleNotes()" title="Toggle Speaker Notes (N)">📝 Notes (N)</button>
-  <button class="ctrl-btn" onclick="openPresenter()" title="Open Synchronized Presenter View (P)">🖥 Presenter (P)</button>
-  <a class="ctrl-btn" href="/p/agentic-data-foundation-deck" target="_blank" style="text-decoration:none" title="Open Executive Deck Sub-Bundle">📊 Exec Deck</a>
-  <a class="ctrl-btn" href="/p/solution-brief-knowledge-catalog" target="_blank" style="text-decoration:none" title="Open Print-Ready Solution Brief Sub-Bundle">📄 Solution Brief</a>
-  <div class="spacer"></div>
-  <button class="ctrl-btn" onclick="prev()" title="Previous Step / Slide (Left Arrow)">← Prev</button>
-  <button class="ctrl-btn" onclick="next()" title="Next Step / Slide (Right Arrow / Space)">Next →</button>
-  <div class="counter" id="ctr">Slide 1 (0/3)</div>
 </div>
 
 <script>
 (function() {
-  var slides = Array.prototype.slice.call(document.querySelectorAll('.s'));
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
   var totalSlides = slides.length;
   var curSlide = 0;
   var curStep = 0;
+  var dotsContainer = document.getElementById('dots');
   var bc = ('BroadcastChannel' in window) ? new BroadcastChannel('deck_sync') : null;
+
+  /* Create progress dots matching Executive Solution Deck */
+  for (var i = 0; i < totalSlides; i++) {
+    (function(idx) {
+      var d = document.createElement('div');
+      d.className = 'dot';
+      d.onclick = function(e) { e.stopPropagation(); show(idx, 0); };
+      dotsContainer.appendChild(d);
+    })(i);
+  }
+
+  /* Scale 1280x720 #stage to fill 100% of browser viewport */
+  function fit() {
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    document.getElementById('stage').style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
 
   function maxStepsFor(sIdx) {
     return parseInt(slides[sIdx].getAttribute('data-steps') || '0', 10);
@@ -674,12 +728,12 @@ h3 {
 
     for (var i = 0; i < totalSlides; i++) {
       slides[i].classList.toggle('active', i === curSlide);
+      dotsContainer.children[i].classList.toggle('on', i === curSlide);
     }
     applyBuildState(slides[curSlide], curStep);
 
-    document.getElementById('ctr').textContent =
-      'Slide ' + (curSlide + 1) + '/' + totalSlides + (maxS > 0 ? ' · Step ' + curStep + '/' + maxS : '');
-    document.getElementById('prog').style.width = (((curSlide + 1) / totalSlides) * 100) + '%';
+    document.getElementById('meta').textContent =
+      'Sherlock Knowledge Layer · ' + (curSlide + 1) + ' / ' + totalSlides + (maxS > 0 ? ' · Step ' + curStep + '/' + maxS : '');
     document.getElementById('notes-drawer').innerHTML = getCurrentNotes(slides[curSlide], curStep);
 
     try {
@@ -710,20 +764,13 @@ h3 {
   };
 
   window.toggleTheme = function() {
-    var root = document.documentElement;
-    var isDark = root.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-      root.removeAttribute('data-theme');
-      document.getElementById('theme-btn').textContent = '🌙 Dark';
-    } else {
-      root.setAttribute('data-theme', 'dark');
-      document.getElementById('theme-btn').textContent = '☀️ Light';
-    }
+    document.body.classList.toggle('dark');
+    document.getElementById('themeBtn').textContent = document.body.classList.contains('dark') ? 'Light' : 'Dark';
   };
 
   window.toggleNotes = function() {
     var dr = document.getElementById('notes-drawer');
-    var btn = document.getElementById('notes-btn');
+    var btn = document.getElementById('notesBtn');
     dr.classList.toggle('open');
     btn.classList.toggle('active', dr.classList.contains('open'));
   };
@@ -783,7 +830,7 @@ h3 {
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); next(); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
     else if (e.key === 'Home' || e.key.toLowerCase() === 'h') { show(0, 0); }
-    else if (e.key.toLowerCase() === 't') { toggleTheme(); }
+    else if (e.key.toLowerCase() === 't' || e.key.toLowerCase() === 'd') { toggleTheme(); }
     else if (e.key.toLowerCase() === 'n') { toggleNotes(); }
     else if (e.key.toLowerCase() === 'p') { openPresenter(); }
   });

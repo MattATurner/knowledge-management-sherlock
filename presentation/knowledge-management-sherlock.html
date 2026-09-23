@@ -50,83 +50,83 @@ body {
 .brandbar i:nth-child(4) { background: var(--g-green); }
 
 .slide {
-  position: absolute; inset: 0; background: var(--bg);
-  padding: 50px 68px 62px; display: none; flex-direction: column;
-  opacity: 0; transition: opacity .3s ease;
+  position: absolute; top: 5px; left: 0; right: 0; bottom: 46px; background: var(--bg);
+  padding: 34px 64px 14px; display: none; flex-direction: column;
+  opacity: 0; transition: opacity .3s ease; overflow: hidden;
 }
 .slide.active { display: flex; opacity: 1; }
 
-/* ---- Typography (Proportioned for 1280x720 Stage) ---- */
+/* ---- Typography (Proportioned for 1280x720 Stage with Zero Overlap) ---- */
 .pill {
-  display: inline-block; align-self: flex-start; font-size: 12px; font-weight: 700;
-  letter-spacing: .07em; text-transform: uppercase; padding: 5px 12px; border-radius: 99px;
+  display: inline-block; align-self: flex-start; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; padding: 4px 11px; border-radius: 99px;
   background: var(--g-blue-050); color: var(--g-blue-700);
 }
 .pill.yellow { background: var(--g-yellow-050); color: var(--g-amber-ink); }
 .pill.green { background: var(--g-green-050); color: var(--g-green); }
 .pill.red { background: var(--g-red-050); color: var(--g-red); }
 
-.eyebrow { font-size: 13px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-2); font-weight: 700; }
-h1 { font-size: 54px; line-height: 1.05; font-weight: 700; letter-spacing: -.022em; margin-top: 14px; }
-h2 { font-size: 38px; line-height: 1.12; font-weight: 700; letter-spacing: -.018em; margin-top: 6px; }
+.eyebrow { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-2); font-weight: 700; }
+h1 { font-size: 50px; line-height: 1.06; font-weight: 700; letter-spacing: -.022em; margin-top: 12px; }
+h2 { font-size: 34px; line-height: 1.12; font-weight: 700; letter-spacing: -.018em; margin-top: 5px; }
 .hl { color: var(--g-blue-700); }
-.sub { font-size: 18.5px; line-height: 1.48; color: var(--ink-2); font-weight: 400; margin-top: 8px; max-width: 960px; }
-.slide-head { margin-bottom: 22px; flex: none; }
+.sub { font-size: 16.5px; line-height: 1.44; color: var(--ink-2); font-weight: 400; margin-top: 6px; max-width: 980px; }
+.slide-head { margin-bottom: 16px; flex: none; }
 
 /* ---- Full-Stage Body & Cards (.body { flex: 1 }) ---- */
-.body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; gap: 18px; }
-.hero-grid { display: grid; grid-template-columns: 1.08fr 1fr; gap: 42px; align-items: stretch; flex: 1; min-height: 0; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: 1; min-height: 0; }
-.split-grid { display: grid; grid-template-columns: 1.08fr 1fr; gap: 22px; flex: 1; min-height: 0; align-items: stretch; }
+.body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; gap: 14px; }
+.hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 38px; align-items: stretch; flex: 1; min-height: 0; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; min-height: 0; }
+.split-grid { display: grid; grid-template-columns: 1.08fr 1fr; gap: 20px; flex: 1; min-height: 0; align-items: stretch; }
 
 .card {
-  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
-  box-shadow: var(--shadow); padding: 22px 22px 18px;
-  display: flex; flex-direction: column; position: relative; overflow: hidden;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 13px;
+  box-shadow: var(--shadow); padding: 18px 20px 14px;
+  display: flex; flex-direction: column; position: relative; overflow: hidden; min-height: 0;
 }
 .card.blue { border-top: 4px solid var(--g-blue); }
 .card.yellow { border-top: 4px solid var(--g-yellow); }
 .card.green { border-top: 4px solid var(--g-green); }
 .card.red { border-top: 4px solid var(--g-red); }
 
-.card .num { font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--ink-3); letter-spacing: .08em; margin-bottom: 6px; }
-.card h3 { font-size: 20px; font-weight: 700; line-height: 1.22; letter-spacing: -.01em; color: var(--ink); }
-.card p { font-size: 15px; line-height: 1.48; color: var(--ink-2); margin-top: 10px; }
+.card .num { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink-3); letter-spacing: .08em; margin-bottom: 4px; }
+.card h3 { font-size: 18.5px; font-weight: 700; line-height: 1.22; letter-spacing: -.01em; color: var(--ink); }
+.card p { font-size: 14px; line-height: 1.44; color: var(--ink-2); margin-top: 7px; }
 .card p strong { color: var(--ink); font-weight: 600; }
 
 /* Bottom-pinned footer inside every card so cards fill vertical space cleanly */
 .card .card-foot {
-  margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border);
+  margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border);
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
 }
 .badge-inline {
-  display: inline-block; font-family: var(--mono); font-size: 11.5px; font-weight: 600;
-  padding: 3px 9px; border-radius: 6px; background: var(--surface);
-  color: var(--g-blue-700); border: 1px solid var(--border);
+  display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 6px; background: var(--surface);
+  color: var(--g-blue-700); border: 1px solid var(--border); white-space: nowrap;
 }
 
 /* Bottom Callout Strip */
-.callout-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; flex: none; min-height: 74px; }
+.callout-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: none; min-height: 64px; }
 .callout-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-left: 4px solid var(--g-blue-700); border-radius: 12px;
-  padding: 13px 16px; font-size: 13.5px; line-height: 1.42; color: var(--ink-2);
+  border-left: 4px solid var(--g-blue-700); border-radius: 10px;
+  padding: 10px 14px; font-size: 13px; line-height: 1.38; color: var(--ink-2);
   display: flex; flex-direction: column; justify-content: center;
 }
-.callout-card strong { color: var(--ink); font-weight: 700; display: block; margin-bottom: 2px; font-size: 13px; }
+.callout-card strong { color: var(--ink); font-weight: 700; display: block; margin-bottom: 2px; font-size: 12.5px; }
 
 /* Hero KPI Stats */
-.stats { display: flex; gap: 34px; margin-top: auto; padding-top: 18px; border-top: 1px solid var(--border); }
-.stat .n { font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
-.stat .l { font-size: 13px; color: var(--ink-2); margin-top: 5px; line-height: 1.35; }
+.stats { display: flex; gap: 32px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.stat .n { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+.stat .l { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; line-height: 1.35; }
 
 /* Code Panel for Slide 5 */
 .code-panel {
-  background: #161B26; color: #E8EAED; border-radius: 14px;
-  padding: 20px 22px; font-family: var(--mono); font-size: 13px;
-  line-height: 1.62; border: 1px solid #2D3748; display: flex; flex-direction: column; justify-content: space-around;
+  background: #161B26; color: #E8EAED; border-radius: 13px;
+  padding: 16px 18px; font-family: var(--mono); font-size: 12.5px;
+  line-height: 1.55; border: 1px solid #2D3748; display: flex; flex-direction: column; justify-content: space-around; min-height: 0;
 }
-.code-line { padding: 10px 12px; border-radius: 8px; transition: all .28s ease; }
+.code-line { padding: 8px 10px; border-radius: 8px; transition: all .28s ease; }
 .code-line.is-spotlight { background: rgba(138,180,248,.18); border-left: 4px solid #8AB4F8; }
 .kw { color: #8AB4F8; font-weight: 700; }
 .fn { color: #FDD663; }
@@ -144,32 +144,38 @@ h2 { font-size: 38px; line-height: 1.12; font-weight: 700; letter-spacing: -.018
   transition: opacity .3s ease, transform .3s ease, border-color .3s ease, box-shadow .3s ease, filter .3s ease;
 }
 .scaffold-group > .is-dimmed {
-  opacity: var(--dim-opacity); filter: grayscale(45%); transform: scale(0.98);
+  opacity: var(--dim-opacity); filter: grayscale(45%); transform: scale(0.985);
 }
 .scaffold-group > .is-spotlight {
-  opacity: 1 !important; filter: none !important; transform: scale(1.015);
+  opacity: 1 !important; filter: none !important; transform: scale(1.01);
   border-color: var(--g-blue-700) !important; box-shadow: var(--shadow-spotlight); z-index: 2;
 }
 
-/* ---- Integrated Stage Chrome (Matches Executive Solution Deck) ---- */
+/* ---- Compact Single-Line Stage Chrome (Dedicated 44px Bottom Strip) ---- */
 #chrome {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 50px;
-  display: flex; align-items: center; gap: 12px; padding: 0 68px; z-index: 30;
+  position: absolute; left: 0; right: 0; bottom: 0; height: 44px;
+  background: var(--bg); border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; padding: 0 64px; z-index: 30;
 }
-#dots { display: flex; gap: 8px; }
+#dots { display: flex; gap: 7px; align-items: center; }
 .dot {
-  width: 24px; height: 4px; border-radius: 2px; background: var(--border);
+  width: 22px; height: 4px; border-radius: 2px; background: var(--border);
   cursor: pointer; transition: background .25s, width .25s;
 }
-.dot.on { background: var(--g-blue-700); width: 38px; }
+.dot.on { background: var(--g-blue-700); width: 34px; }
 #chrome .spacer { flex: 1; }
-.meta { font-size: 12px; color: var(--ink-3); letter-spacing: .04em; font-family: var(--mono); }
+.meta {
+  font-size: 11px; color: var(--ink-3); letter-spacing: .03em;
+  font-family: var(--mono); white-space: nowrap; margin-right: 4px;
+}
 .navBtn {
   border: 1px solid var(--border); background: var(--bg); color: var(--ink-2);
-  font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .05em;
-  text-transform: uppercase; padding: 5px 12px; border-radius: 99px; cursor: pointer;
-  text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; padding: 4px 10px; height: 24px; line-height: 1;
+  border-radius: 99px; cursor: pointer; white-space: nowrap;
+  text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
 }
+.navBtn.arrow { font-size: 13px; padding: 0 8px; min-width: 24px; }
 .navBtn:hover, .navBtn.active { border-color: var(--g-blue-700); color: var(--g-blue-700); background: var(--g-blue-050); }
 
 /* Speaker Notes Drawer inside #stage */
@@ -187,8 +193,8 @@ h2 { font-size: 38px; line-height: 1.12; font-weight: 700; letter-spacing: -.018
   <meta name="tags" content="BigQuery, Knowledge Catalog, Hybrid Search, GraphRAG, Sherlock">
   <meta name="deck-role" content="master">
   <meta name="catalog-visibility" content="visible">
-  <meta name="git-commit" content="67d71ee">
-  <meta name="published-at" content="2026-09-23T07:01:04Z">
+  <meta name="git-commit" content="1a3006c">
+  <meta name="published-at" content="2026-09-23T07:14:26Z">
 </head>
 <body>
 
@@ -646,13 +652,13 @@ h2 { font-size: 38px; line-height: 1.12; font-weight: 700; letter-spacing: -.018
   <div id="chrome">
     <div id="dots"></div>
     <div class="spacer"></div>
-    <span class="meta" id="meta">Sherlock Knowledge Layer · Slide 1/7 (Step 0/3)</span>
+    <span class="meta" id="meta">Sherlock · 1 / 7 (0/3)</span>
     <a class="navBtn" href="/p/agentic-data-foundation-deck" target="_blank" title="Open Executive Solution Deck">Exec Deck</a>
-    <a class="navBtn" href="/p/solution-brief-knowledge-catalog" target="_blank" title="Open Print-Ready Solution Brief">Solution Brief</a>
-    <button class="navBtn" id="notesBtn" onclick="toggleNotes()" title="Toggle Speaker Notes (N)">Notes (N)</button>
-    <button class="navBtn" onclick="openPresenter()" title="Open Synchronized Presenter View (P)">Presenter (P)</button>
-    <button class="navBtn" onclick="prev()" title="Previous Step / Slide (Left Arrow)">&#8249;</button>
-    <button class="navBtn" onclick="next()" title="Next Step / Slide (Right Arrow / Space)">&#8250;</button>
+    <a class="navBtn" href="/p/solution-brief-knowledge-catalog" target="_blank" title="Open Print-Ready Solution Brief">Brief</a>
+    <button class="navBtn" id="notesBtn" onclick="toggleNotes()" title="Toggle Speaker Notes (N)">Notes</button>
+    <button class="navBtn" onclick="openPresenter()" title="Open Synchronized Presenter View (P)">Presenter</button>
+    <button class="navBtn arrow" onclick="prev()" title="Previous Step / Slide (Left Arrow)">&#8249;</button>
+    <button class="navBtn arrow" onclick="next()" title="Next Step / Slide (Right Arrow / Space)">&#8250;</button>
     <button class="navBtn" id="themeBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme (T)">Dark</button>
   </div>
 </div>
@@ -733,7 +739,7 @@ h2 { font-size: 38px; line-height: 1.12; font-weight: 700; letter-spacing: -.018
     applyBuildState(slides[curSlide], curStep);
 
     document.getElementById('meta').textContent =
-      'Sherlock Knowledge Layer · ' + (curSlide + 1) + ' / ' + totalSlides + (maxS > 0 ? ' · Step ' + curStep + '/' + maxS : '');
+      'Sherlock · ' + (curSlide + 1) + ' / ' + totalSlides + (maxS > 0 ? ' (' + curStep + '/' + maxS + ')' : '');
     document.getElementById('notes-drawer').innerHTML = getCurrentNotes(slides[curSlide], curStep);
 
     try {

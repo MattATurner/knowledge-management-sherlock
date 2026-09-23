@@ -1,848 +1,824 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>From Stories to Decisions — The Sherlock Knowledge Layer on Google Cloud</title>
+<meta charset="utf-8">
+<title>The Sherlock Knowledge Layer — BigQuery Hybrid GraphRAG &amp; Knowledge Catalog</title>
 <style>
-:root {
-  --g-blue: #4285F4; --g-red: #EA4335; --g-yellow: #FBBC04; --g-green: #34A853;
-  --g-blue-700: #1A73E8; --g-blue-050: #E8F0FE;
-  --g-green-050: #E6F4EA; --g-yellow-050: #FEF7E0; --g-red-050: #FCE8E6;
-  --g-amber-ink: #B06000;
-  --ink: #202124; --ink-2: #5F6368; --ink-3: #80868B;
-  --border: #DADCE0; --surface: #F8F9FA; --bg: #FFFFFF;
-  --shadow: 0 1px 2px rgba(60,64,67,.08), 0 4px 14px rgba(60,64,67,.10);
-  --shadow-spotlight: 0 12px 28px -4px rgba(26,115,232,.26);
-  --dim-opacity: 0.22;
-  --font: "Google Sans","Product Sans",Roboto,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
-  --mono: "Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+:root{
+  --g-blue:#4285F4; --g-red:#EA4335; --g-yellow:#FBBC04; --g-green:#34A853;
+  --g-blue-700:#1a73e8; --g-blue-050:#e8f0fe;
+  --g-teal:#12b5cb; --g-purple:#a142f4;
+  --ink:#202124; --ink-2:#5f6368; --ink-3:#80868b;
+  --border:#dadce0; --surface:#f8f9fa; --bg:#ffffff;
+  --shadow:0 1px 2px rgba(60,64,67,.08), 0 4px 14px rgba(60,64,67,.10);
+  --font:"Google Sans","Product Sans",Roboto,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-body.dark {
-  --ink: #E8EAED; --ink-2: #9AA0A6; --ink-3: #80868B;
-  --border: #3C4043; --surface: #202124; --bg: #131314;
-  --g-blue-700: #8AB4F8; --g-blue-050: #1F2A3D;
-  --g-green-050: rgba(52,168,83,.16); --g-yellow-050: rgba(251,188,4,.16); --g-red-050: rgba(234,67,53,.16);
-  --g-amber-ink: #FDD663;
-  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 18px rgba(0,0,0,.5);
-  --shadow-spotlight: 0 12px 32px -4px rgba(138,180,248,.32);
+body.dark{
+  --ink:#e8eaed; --ink-2:#9aa0a6; --ink-3:#80868b;
+  --border:#3c4043; --surface:#202124; --bg:#131314;
+  --g-blue-050:#1f2a3d;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 18px rgba(0,0,0,.5);
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body {
-  background: var(--bg); color: var(--ink); font-family: var(--font);
-  display: flex; align-items: center; justify-content: center; overflow: hidden;
-  -webkit-font-smoothing: antialiased; transition: background .25s, color .25s;
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  -webkit-font-smoothing:antialiased; transition:background .3s,color .3s;
 }
+#stage{position:relative; width:1280px; height:720px; transform-origin:50% 50%; flex:none}
 
-/* ==========================================================================
-   EXECUTIVE DECK STAGE ARCHITECTURE: Fixed 1280x720 scaled via fit()
-   ========================================================================== */
-#stage {
-  position: relative; width: 1280px; height: 720px;
-  transform-origin: 50% 50%; flex: none; background: var(--bg);
+.slide{
+  position:absolute; inset:0; background:var(--bg);
+  padding:56px 72px 64px; display:none; flex-direction:column;
+  opacity:0; transition:opacity .35s ease;
 }
-.brandbar { position: absolute; top: 0; left: 0; height: 5px; width: 100%; display: flex; z-index: 20; }
-.brandbar i { flex: 1; }
-.brandbar i:nth-child(1) { background: var(--g-blue); }
-.brandbar i:nth-child(2) { background: var(--g-red); }
-.brandbar i:nth-child(3) { background: var(--g-yellow); }
-.brandbar i:nth-child(4) { background: var(--g-green); }
+#s1{display:flex; opacity:1}
+.js #s1:not(.active){display:none; opacity:0}
+.slide.active{display:flex; opacity:1}
 
-.slide {
-  position: absolute; top: 5px; left: 0; right: 0; bottom: 46px; background: var(--bg);
-  padding: 34px 64px 14px; display: none; flex-direction: column;
-  opacity: 0; transition: opacity .3s ease; overflow: hidden;
-}
-.slide.active { display: flex; opacity: 1; }
+/* ---- typography ---- */
+.eyebrow{font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); font-weight:600}
+h1{font-size:60px; line-height:1.04; font-weight:700; letter-spacing:-.022em}
+h2{font-size:40px; line-height:1.1; font-weight:700; letter-spacing:-.018em}
+.sub{font-size:19px; line-height:1.5; color:var(--ink-2); font-weight:400}
+.hl{color:var(--g-blue-700)}
+.slide-head{margin-bottom:26px}
+.slide-head h2{margin-top:8px}
+.slide-head .sub{margin-top:10px; max-width:900px}
 
-/* ---- Typography (Proportioned for 1280x720 Stage with Zero Overlap) ---- */
-.pill {
-  display: inline-block; align-self: flex-start; font-size: 11.5px; font-weight: 700;
-  letter-spacing: .07em; text-transform: uppercase; padding: 4px 11px; border-radius: 99px;
-  background: var(--g-blue-050); color: var(--g-blue-700);
+/* ---- auto-hiding chrome ---- */
+#chrome{
+  position:absolute; left:0; right:0; bottom:0; height:52px;
+  display:flex; align-items:center; gap:10px; padding:0 72px;
+  opacity:0; transform:translateY(10px); pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease; z-index:40;
 }
-.pill.yellow { background: var(--g-yellow-050); color: var(--g-amber-ink); }
-.pill.green { background: var(--g-green-050); color: var(--g-green); }
-.pill.red { background: var(--g-red-050); color: var(--g-red); }
+body.show-chrome #chrome, #chrome:hover{
+  opacity:1; transform:none; pointer-events:auto;
+}
+#dots{display:flex; gap:8px; pointer-events:auto}
+.dot{width:26px; height:4px; border-radius:2px; background:var(--border); cursor:pointer; transition:background .25s,width .25s}
+.dot.on{background:var(--g-blue-700); width:38px}
+#chrome .spacer{flex:1}
+.meta{font-size:11.5px; color:var(--ink-3); letter-spacing:.04em; white-space:nowrap}
+#themeBtn,.navBtn{
+  pointer-events:auto; border:1px solid var(--border); background:var(--bg); color:var(--ink-2);
+  font-family:var(--font); font-size:10.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+  padding:4px 11px; border-radius:99px; cursor:pointer; white-space:nowrap; text-decoration:none;
+}
+#themeBtn:hover,.navBtn:hover{border-color:var(--g-blue-700); color:var(--g-blue-700)}
+.navBtn.arrow{font-size:14px; line-height:1; padding:3px 10px 4px}
+body.export #chrome{display:none}
+.brandbar{position:absolute; top:0; left:0; height:5px; width:100%; display:flex}
+.brandbar i{flex:1}
+.brandbar i:nth-child(1){background:var(--g-blue)}
+.brandbar i:nth-child(2){background:var(--g-red)}
+.brandbar i:nth-child(3){background:var(--g-yellow)}
+.brandbar i:nth-child(4){background:var(--g-green)}
 
-.eyebrow { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-2); font-weight: 700; }
-h1 { font-size: 50px; line-height: 1.06; font-weight: 700; letter-spacing: -.022em; margin-top: 12px; }
-h2 { font-size: 34px; line-height: 1.12; font-weight: 700; letter-spacing: -.018em; margin-top: 5px; }
-.hl { color: var(--g-blue-700); }
-.sub { font-size: 16.5px; line-height: 1.44; color: var(--ink-2); font-weight: 400; margin-top: 6px; max-width: 980px; }
-.slide-head { margin-bottom: 16px; flex: none; }
+/* ---- generic ---- */
+.body{flex:1; display:flex; min-height:0}
+#s2 .body, #s4 .body{justify-content:space-between}
+#s5 .outcomes, #s5 .body > div:last-child{justify-content:space-between}
+.card{background:var(--bg); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow)}
+.pill{display:inline-block; font-size:12px; font-weight:600; letter-spacing:.05em;
+  text-transform:uppercase; padding:4px 11px; border-radius:99px;
+  background:var(--g-blue-050); color:var(--g-blue-700)}
 
-/* ---- Full-Stage Body & Cards (.body { flex: 1 }) ---- */
-.body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; gap: 14px; }
-.hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 38px; align-items: stretch; flex: 1; min-height: 0; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; min-height: 0; }
-.split-grid { display: grid; grid-template-columns: 1.08fr 1fr; gap: 20px; flex: 1; min-height: 0; align-items: stretch; }
+/* ---- slide 1 (Hero: Cohesive Left Column + Right Canvas Diagram) ---- */
+#s1{padding-top:78px}
+#s1 .grid{display:grid; grid-template-columns:1.02fr 1fr; gap:48px; align-items:center; flex:1}
+#s1 h1{margin-top:18px}
+#s1 .lede{margin-top:22px; font-size:20px; line-height:1.55; color:var(--ink-2); max-width:560px}
+#s1 .lede b{color:var(--ink); font-weight:600}
+#s1 .stats{display:flex; gap:38px; margin-top:34px}
+#s1 .stat .n{font-size:36px; font-weight:700; letter-spacing:-.02em}
+#s1 .stat .l{font-size:13px; color:var(--ink-2); margin-top:2px; line-height:1.35}
 
-.card {
-  background: var(--bg); border: 1px solid var(--border); border-radius: 13px;
-  box-shadow: var(--shadow); padding: 18px 20px 14px;
-  display: flex; flex-direction: column; position: relative; overflow: hidden; min-height: 0;
-}
-.card.blue { border-top: 4px solid var(--g-blue); }
-.card.yellow { border-top: 4px solid var(--g-yellow); }
-.card.green { border-top: 4px solid var(--g-green); }
-.card.red { border-top: 4px solid var(--g-red); }
+/* ---- slide 2 (5 Canon Gaps + Bottom Canvas Bar) ---- */
+.gaps{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:4px}
+.gap{border:1px solid var(--border); border-radius:14px; padding:18px 16px 16px; background:var(--bg);
+  display:flex; flex-direction:column; position:relative; overflow:hidden; min-height:230px}
+.gap .bar{position:absolute; top:0; left:0; height:4px; width:0; transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.gap .ic{width:34px;height:34px;margin-bottom:12px}
+.gap h3{font-size:17px; font-weight:700; letter-spacing:-.01em}
+.gap p{font-size:13px; line-height:1.42; color:var(--ink-2); margin-top:8px}
+.gap .cost{margin-top:auto; padding-top:12px; font-size:12.5px; line-height:1.35; font-weight:600; color:var(--ink)}
+.gap .cost span{display:block; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600; margin-bottom:4px}
 
-.card .num { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink-3); letter-spacing: .08em; margin-bottom: 4px; }
-.card h3 { font-size: 18.5px; font-weight: 700; line-height: 1.22; letter-spacing: -.01em; color: var(--ink); }
-.card p { font-size: 14px; line-height: 1.44; color: var(--ink-2); margin-top: 7px; }
-.card p strong { color: var(--ink); font-weight: 600; }
+/* ---- slide 3 (3 Jobs + Animated Layered GraphRAG Stack) ---- */
+#s3 .body{gap:34px; align-items:stretch}
+.jobs{width:330px; display:flex; flex-direction:column; gap:12px; padding-top:2px}
+.job{border:1px solid var(--border); border-left:4px solid var(--g-blue); border-radius:12px;
+  padding:14px 16px; background:var(--bg); cursor:default; transition:box-shadow .25s, transform .25s}
+.job:hover{box-shadow:var(--shadow); transform:translateX(3px)}
+.job h3{font-size:18px; font-weight:700; display:flex; align-items:center; gap:9px}
+.job h3 em{font-style:normal; font-size:11px; font-weight:700; color:#fff; background:var(--g-blue);
+  width:19px; height:19px; border-radius:50%; display:grid; place-items:center}
+.job p{font-size:13.5px; line-height:1.45; color:var(--ink-2); margin-top:6px}
+.note{font-size:11.5px; color:var(--ink-3); line-height:1.5; margin-top:12px}
 
-/* Bottom-pinned footer inside every card so cards fill vertical space cleanly */
-.card .card-foot {
-  margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border);
-  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-}
-.badge-inline {
-  display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600;
-  padding: 2px 8px; border-radius: 6px; background: var(--surface);
-  color: var(--g-blue-700); border: 1px solid var(--border); white-space: nowrap;
-}
+/* ---- slide 4 (5 Differentiators + Compounding Schematic) ---- */
+#s4 .body{gap:0}
+.diffs{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; width:100%}
+.diff{border:1px solid var(--border); border-radius:14px; padding:16px 15px; background:var(--bg);
+  display:flex; flex-direction:column; min-height:250px}
+.diff .num{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.1em}
+.diff h3{font-size:16.5px; font-weight:700; line-height:1.22; margin-top:8px; letter-spacing:-.01em}
+.diff p{font-size:12.5px; line-height:1.45; color:var(--ink-2); margin-top:9px}
+.diff .closes{margin-top:auto; padding-top:12px; display:flex; align-items:center; gap:7px;
+  font-size:12px; font-weight:600}
+.diff .closes .tick{width:15px;height:15px;flex:none}
+.strike{text-decoration:line-through; text-decoration-thickness:1.5px}
 
-/* Bottom Callout Strip */
-.callout-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: none; min-height: 64px; }
-.callout-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-left: 4px solid var(--g-blue-700); border-radius: 10px;
-  padding: 10px 14px; font-size: 13px; line-height: 1.38; color: var(--ink-2);
-  display: flex; flex-direction: column; justify-content: center;
-}
-.callout-card strong { color: var(--ink); font-weight: 700; display: block; margin-bottom: 2px; font-size: 12.5px; }
-
-/* Hero KPI Stats */
-.stats { display: flex; gap: 32px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
-.stat .n { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
-.stat .l { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; line-height: 1.35; }
-
-/* Code Panel for Slide 5 */
-.code-panel {
-  background: #161B26; color: #E8EAED; border-radius: 13px;
-  padding: 16px 18px; font-family: var(--mono); font-size: 12.5px;
-  line-height: 1.55; border: 1px solid #2D3748; display: flex; flex-direction: column; justify-content: space-around; min-height: 0;
-}
-.code-line { padding: 8px 10px; border-radius: 8px; transition: all .28s ease; }
-.code-line.is-spotlight { background: rgba(138,180,248,.18); border-left: 4px solid #8AB4F8; }
-.kw { color: #8AB4F8; font-weight: 700; }
-.fn { color: #FDD663; }
-.cm { color: #9AA0A6; font-style: italic; }
-
-/* ---- Progressive Build & Focus-and-Context Scaffolding ---- */
-[data-build] {
-  opacity: 0; transform: translateY(8px);
-  transition: opacity .28s ease, transform .28s ease; pointer-events: none;
-}
-[data-build].build-visible {
-  opacity: 1; transform: translateY(0); pointer-events: auto;
-}
-.scaffold-group > * {
-  transition: opacity .3s ease, transform .3s ease, border-color .3s ease, box-shadow .3s ease, filter .3s ease;
-}
-.scaffold-group > .is-dimmed {
-  opacity: var(--dim-opacity); filter: grayscale(45%); transform: scale(0.985);
-}
-.scaffold-group > .is-spotlight {
-  opacity: 1 !important; filter: none !important; transform: scale(1.01);
-  border-color: var(--g-blue-700) !important; box-shadow: var(--shadow-spotlight); z-index: 2;
-}
-
-/* ---- Compact Single-Line Stage Chrome (Dedicated 44px Bottom Strip) ---- */
-#chrome {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 44px;
-  background: var(--bg); border-top: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px; padding: 0 64px; z-index: 30;
-}
-#dots { display: flex; gap: 7px; align-items: center; }
-.dot {
-  width: 22px; height: 4px; border-radius: 2px; background: var(--border);
-  cursor: pointer; transition: background .25s, width .25s;
-}
-.dot.on { background: var(--g-blue-700); width: 34px; }
-#chrome .spacer { flex: 1; }
-.meta {
-  font-size: 11px; color: var(--ink-3); letter-spacing: .03em;
-  font-family: var(--mono); white-space: nowrap; margin-right: 4px;
-}
-.navBtn {
-  border: 1px solid var(--border); background: var(--bg); color: var(--ink-2);
-  font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .04em;
-  text-transform: uppercase; padding: 4px 10px; height: 24px; line-height: 1;
-  border-radius: 99px; cursor: pointer; white-space: nowrap;
-  text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
-}
-.navBtn.arrow { font-size: 13px; padding: 0 8px; min-width: 24px; }
-.navBtn:hover, .navBtn.active { border-color: var(--g-blue-700); color: var(--g-blue-700); background: var(--g-blue-050); }
-
-/* Speaker Notes Drawer inside #stage */
-#notes-drawer {
-  position: absolute; left: 68px; right: 68px; bottom: 54px;
-  background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--g-blue-700);
-  border-radius: 12px; box-shadow: var(--shadow-spotlight); padding: 16px 22px;
-  font-size: 14px; line-height: 1.55; color: var(--ink);
-  opacity: 0; pointer-events: none; transform: translateY(12px);
-  transition: opacity .22s ease, transform .22s ease; z-index: 35;
-}
-#notes-drawer.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
-#notes-drawer strong { color: var(--g-blue-700); }
+/* ---- slide 5 (Outcomes + Groundedness Curve + CTA) ---- */
+#s5 .body{gap:30px}
+.outcomes{width:430px; display:flex; flex-direction:column; gap:14px}
+.oc{border:1px solid var(--border); border-radius:14px; padding:16px 18px; background:var(--bg)}
+.oc .n{font-size:34px; font-weight:700; letter-spacing:-.025em; line-height:1}
+.oc h3{font-size:15px; font-weight:700; margin-top:7px}
+.oc p{font-size:12.5px; line-height:1.45; color:var(--ink-2); margin-top:4px}
+.cta{margin-top:14px; border-radius:14px; padding:18px 22px; background:var(--g-blue-050);
+  border:1px solid transparent; display:flex; gap:20px; align-items:center}
+.cta .big{font-size:15.5px; font-weight:700; line-height:1.35}
+.cta .small{font-size:12.5px; color:var(--ink-2); line-height:1.45; margin-top:3px}
+.cta .step{flex:none; width:62px; height:62px; border-radius:50%; background:var(--g-blue-700);
+  color:#fff; display:grid; place-items:center; text-align:center; font-size:11px;
+  font-weight:700; line-height:1.15; letter-spacing:.02em}
 </style>
   <meta name="tags" content="BigQuery, Knowledge Catalog, Hybrid Search, GraphRAG, Sherlock">
   <meta name="deck-role" content="master">
   <meta name="catalog-visibility" content="visible">
-  <meta name="git-commit" content="1a3006c">
-  <meta name="published-at" content="2026-09-23T07:14:26Z">
+  <meta name="git-commit" content="4e3883d">
+  <meta name="published-at" content="2026-09-23T07:24:15Z">
 </head>
 <body>
-
+<script>
+document.documentElement.className='js';
+window.onerror=function(m,s,l,c){
+  var d=document.getElementById('errbox');
+  if(!d){ d=document.createElement('div'); d.id='errbox'; document.body.appendChild(d); }
+  d.textContent='Deck script error: '+m+' (line '+l+')';
+  d.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:99;padding:10px 14px;'
+    +'font:13px system-ui;background:#fce8e6;color:#c5221f;border:1px solid #EA4335;border-radius:8px';
+  document.documentElement.className='';
+};
+</script>
 <div id="stage">
+
+<!-- ================= SLIDE 1 ================= -->
+<section class="slide" id="s1">
   <div class="brandbar"><i></i><i></i><i></i><i></i></div>
-
-  <!-- ==========================================================================
-       SLIDE 1: HERO & 3-JOB ARCHITECTURE (Full-Stage 2-Column Hero + Progressive Stack)
-       ========================================================================== -->
-  <section class="slide active" data-idx="0" data-steps="3"
-           data-notes="<strong>Step 0 (Overview):</strong> We use the complete 60-story Sherlock Holmes canon to prove our enterprise Agentic Data Foundation on Google Cloud. Just like enterprise contracts and tickets, Arthur Conan Doyle&apos;s canon is full of disguised identities, unreliable narrators, and multi-hop mysteries."
-           data-notes-1="<strong>Step 1 (Understand):</strong> First, we split and parse all 4 novels and 56 short stories into structured passages without losing chapter hierarchy."
-           data-notes-2="<strong>Step 2 (Connect):</strong> Next, we resolve aliases like Sigerson and Vandeleur into golden records and build a property graph in BigQuery governed by Knowledge Catalog."
-           data-notes-3="<strong>Step 3 (Serve):</strong> Finally, our ADK detective agent uses BigQuery Hybrid Search and GRAPH_TABLE to answer multi-hop questions with chapter citations.">
-    <div class="hero-grid">
-      <div style="display:flex;flex-direction:column">
-        <span class="pill">Sherlock Reference Architecture</span>
-        <h1>Turn 60 stories into a <span class="hl">governed brain</span> that AI agents trust</h1>
-        <p class="sub" style="font-size:19.5px;margin-top:18px">
-          Disguised aliases, conflicting dates, and 60 unstructured books mirror the exact context gaps that break enterprise AI agents in production.
-        </p>
-        <div class="stats">
-          <div class="stat">
-            <div class="n" style="color:var(--g-blue-700)">60</div>
-            <div class="l">canonical PDFs parsed<br/>with layout hierarchy</div>
-          </div>
-          <div class="stat">
-            <div class="n" style="color:var(--g-amber-ink)">12</div>
-            <div class="l">Knowledge Catalog terms<br/>linked to BigQuery columns</div>
-          </div>
-          <div class="stat">
-            <div class="n" style="color:var(--g-green)">&gt;90%</div>
-            <div class="l">groundedness with<br/>Hybrid GraphRAG</div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:14px;justify-content:space-between" class="scaffold-group">
-        <div class="card blue" style="flex:1" data-active-step="1">
-          <div class="num">01 · UNDERSTAND</div>
-          <h3>Read the 60-Story Canon Cleanly</h3>
-          <p><strong>Preserve layout hierarchy:</strong> Split and parse 4 novels and 56 short stories into chapter chunks.</p>
-          <div class="card-foot">
-            <span class="badge-inline">parsepdf.py</span>
-            <span class="badge-inline">AI.PARSE_DOCUMENT</span>
-            <span class="badge-inline">AI.EMBED</span>
-          </div>
-        </div>
-
-        <div class="card yellow" style="flex:1" data-active-step="2">
-          <div class="num">02 · CONNECT — THE DETECTIVE BRAIN</div>
-          <h3>Unify Disguises &amp; Graph Relationships</h3>
-          <p><strong>Resolve golden entities:</strong> Merge <em>Sigerson</em> and <em>Vandeleur</em> into canonical IDs inside a property graph.</p>
-          <div class="card-foot">
-            <span class="badge-inline">5_er_judged_pairs</span>
-            <span class="badge-inline">BigQuery Graph</span>
-            <span class="badge-inline">Knowledge Catalog</span>
-          </div>
-        </div>
-
-        <div class="card green" style="flex:1" data-active-step="3">
-          <div class="num">03 · SERVE</div>
-          <h3>Answer Multi-Hop Questions with Citations</h3>
-          <p><strong>Fuse vector and keyword search:</strong> Retrieve exact clues and cite every story and chapter.</p>
-          <div class="card-foot">
-            <span class="badge-inline">AI.SEARCH Hybrid RRF</span>
-            <span class="badge-inline">GRAPH_TABLE</span>
-            <span class="badge-inline">ADK Agent</span>
-          </div>
-        </div>
+  <div class="grid">
+    <div>
+      <span class="pill">Sherlock Reference Architecture</span>
+      <h1>60 stories.<br>Disguised aliases.<br><span class="hl">One detective brain.</span></h1>
+      <p class="lede">Arthur Conan Doyle&rsquo;s canon mirrors the exact traps that break enterprise AI:
+        disguised aliases like <b>Sigerson</b> and <b>Vandeleur</b>, conflicting timelines, and 60 unstructured
+        books — solved in place with <b>BigQuery Hybrid GraphRAG</b> and <b>Knowledge Catalog</b>.</p>
+      <div class="stats">
+        <div class="stat"><div class="n" style="color:var(--g-red)">60</div>
+          <div class="l">canonical PDFs parsed<br>with chapter hierarchy</div></div>
+        <div class="stat"><div class="n" style="color:var(--g-yellow)">12</div>
+          <div class="l">Knowledge Catalog terms<br>linked to BigQuery schema</div></div>
+        <div class="stat"><div class="n" style="color:var(--g-green)">&gt;90%</div>
+          <div class="l">groundedness with<br>Hybrid Search + Graph</div></div>
       </div>
     </div>
-  </section>
-
-  <!-- ==========================================================================
-       SLIDE 2: UNDERSTAND — PARSING & AUTONOMOUS EMBEDDINGS (3 Build Steps)
-       ========================================================================== -->
-  <section class="slide" data-idx="1" data-steps="3"
-           data-notes="<strong>Step 0 (Understand Overview):</strong> Standard PDF chunking cuts tables and chapters in half, causing agents to quote fragments out of context. Here is how Stage 0 through Stage 2 close the Unreadable gap."
-           data-notes-1="<strong>Step 1 (Canonical PDF Splitter):</strong> Our Python splitter normalizes bookmark variants across editions so all 60 stories—including The Illustrious Client and The Blanched Soldier—land cleanly in Cloud Storage."
-           data-notes-2="<strong>Step 2 (Layout-Aware Chunking):</strong> AI.PARSE_DOCUMENT reads the Object Table directly inside BigQuery SQL, preserving story titles, chapter numbers, and passage order."
-           data-notes-3="<strong>Step 3 (Autonomous Embeddings):</strong> With GENERATED ALWAYS AS AI.EMBED and a full-text SEARCH INDEX, BigQuery keeps both dense vectors and keyword indexes synchronized automatically.">
-    <div class="slide-head">
-      <span class="eyebrow" style="color:var(--g-blue-700)">Step 1 · Understand (Closing the Unreadable Gap)</span>
-      <h2>Read every chapter cleanly and keep embeddings in sync</h2>
-      <p class="sub">No external OCR pipelines or bolt-on vector databases — BigQuery parses documents and maintains indexes in place.</p>
-    </div>
-
-    <div class="body">
-      <div class="grid-3 scaffold-group">
-        <div class="card blue" data-active-step="1">
-          <div class="num">STAGE 0–1 · INGESTION</div>
-          <h3>60 Canonical Story PDFs</h3>
-          <p><strong>Reconcile edition titles:</strong> Normalize bookmark variants to split all 4 novels and 56 short stories without missing pages.</p>
-          <div class="card-foot">
-            <span class="badge-inline">holmes/parsepdf.py</span>
-            <span class="badge-inline">0_books_raw</span>
-          </div>
-        </div>
-
-        <div class="card yellow" data-active-step="2">
-          <div class="num">STAGE 2 · LAYOUT PARSING</div>
-          <h3>Hierarchy-Preserving Chunks</h3>
-          <p><strong>Keep chapter structure:</strong> Parse PDFs directly in BigQuery SQL while retaining story titles and chapter boundaries.</p>
-          <div class="card-foot">
-            <span class="badge-inline">AI.PARSE_DOCUMENT</span>
-            <span class="badge-inline">2_book_passages</span>
-          </div>
-        </div>
-
-        <div class="card green" data-active-step="3">
-          <div class="num">STAGE 7 · DUAL INDEXING</div>
-          <h3>Autonomous Vector + Text Index</h3>
-          <p><strong>Auto-sync vectors and text:</strong> Maintain dense embeddings and full-text search indexes inside one BigQuery table.</p>
-          <div class="card-foot">
-            <span class="badge-inline">AI.EMBED</span>
-            <span class="badge-inline">idx_passage_content_search</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="callout-strip">
-        <div class="callout-card" data-build="1" data-active-step="1">
-          <strong>Zero absorbed stories</strong>
-          Title normalization prevents <em>His Last Bow</em> from swallowing <em>The Illustrious Client</em>.
-        </div>
-        <div class="callout-card" data-build="2" data-active-step="2">
-          <strong>Provenance intact</strong>
-          Every passage carries its exact <code>story_id</code>, <code>chapter_num</code>, and <code>passage_id</code>.
-        </div>
-        <div class="callout-card" data-build="3" data-active-step="3">
-          <strong>Zero synchronization drift</strong>
-          Embeddings and search indexes update automatically when passages change.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       SLIDE 3: CONNECT — ENTITY RESOLUTION & ALIAS SURVIVORSHIP (3 Build Steps)
-       ========================================================================== -->
-  <section class="slide" data-idx="2" data-steps="3"
-           data-notes="<strong>Step 0 (Entity Resolution):</strong> In the canon, Sherlock Holmes disguises himself as the Norwegian explorer Sigerson, the book collector Altamont, and Captain Basil. Stapleton hides behind the name Vandeleur. Without entity resolution, multi-hop questions fail."
-           data-notes-1="<strong>Step 1 (Raw Mentions):</strong> Gemini extracts every raw character mention per passage into 4_stg_character_mentions before any deduplication occurs."
-           data-notes-2="<strong>Step 2 (Match Adjudication):</strong> Vector blocking finds candidate pairs, and LLM adjudication records both accepted and rejected pairs in 5_er_judged_pairs for auditability."
-           data-notes-3="<strong>Step 3 (Canonical Golden Record):</strong> Connected components collapse all aliases into one char_id in 6_characters, backed by the 6_char_resolution_map crosswalk.">
-    <div class="slide-head">
-      <span class="eyebrow" style="color:var(--g-amber-ink)">Step 2A · Connect (Entity Resolution &amp; MDM Survivorship)</span>
-      <h2>Merge disguised aliases like &ldquo;Sigerson&rdquo; and &ldquo;Vandeleur&rdquo; into one ID</h2>
-      <p class="sub">Just as one enterprise customer appears under six CRM records, characters in the canon operate under multiple disguises.</p>
-    </div>
-
-    <div class="body">
-      <div class="grid-3 scaffold-group">
-        <div class="card red" data-active-step="1">
-          <div class="num">STAGE 4 · RAW EXTRACTION</div>
-          <h3>Unresolved Story Mentions</h3>
-          <p><strong>Capture verbatim names:</strong> Record every character and place mention exactly as written in the source passage.</p>
-          <div class="card-foot">
-            <span class="badge-inline">4_stg_character_mentions</span>
-            <span class="badge-inline">Mention Term</span>
-          </div>
-        </div>
-
-        <div class="card yellow" data-active-step="2">
-          <div class="num">STAGE 5 · MATCH ADJUDICATION</div>
-          <h3>Vector Blocking &amp; Pair Review</h3>
-          <p><strong>Judge candidate pairs:</strong> Score vector similarity pairs and retain rejected matches for governance auditability.</p>
-          <div class="card-foot">
-            <span class="badge-inline">5_er_judged_pairs</span>
-            <span class="badge-inline">is_same_entity</span>
-          </div>
-        </div>
-
-        <div class="card green" data-active-step="3">
-          <div class="num">STAGE 6 · GOLDEN RECORDS</div>
-          <h3>Canonical Entity &amp; Crosswalk</h3>
-          <p><strong>Unify under one ID:</strong> Collapse all aliases into a single golden character record with a full survivorship map.</p>
-          <div class="card-foot">
-            <span class="badge-inline">6_characters</span>
-            <span class="badge-inline">6_char_resolution_map</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="callout-strip">
-        <div class="callout-card" data-build="1" data-active-step="1">
-          <strong>Holmes undercover</strong>
-          Appears across the canon as <em>Sigerson</em>, <em>Altamont</em>, and <em>Captain Basil</em>.
-        </div>
-        <div class="callout-card" data-build="2" data-active-step="2">
-          <strong>Auditable decisions</strong>
-          Agents call <code>audit_entity_resolution</code> to inspect accepted and rejected merges.
-        </div>
-        <div class="callout-card" data-build="3" data-active-step="3">
-          <strong>The Baskerville villain</strong>
-          Unifies <em>Stapleton</em>, <em>Vandeleur</em>, and <em>Rodger Baskerville</em> under one <code>char_id</code>.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       SLIDE 4: CONNECT — BIGQUERY KNOWLEDGE CATALOG & GRAPH (3 Build Steps)
-       ========================================================================== -->
-  <section class="slide" data-idx="3" data-steps="3"
-           data-notes="<strong>Step 0 (Knowledge Catalog &amp; Graph):</strong> A graph without agreed definitions still leaves data Unexplained. We govern the BigQuery Property Graph with 12 business glossary terms in BigQuery Knowledge Catalog."
-           data-notes-1="<strong>Step 1 (Entity Resolution Terms):</strong> Five Knowledge Catalog terms—Mention, Alias, Canonical Entity, Resolution Map, and Match Adjudication—are linked directly to the Stage 4–6 schema columns."
-           data-notes-2="<strong>Step 2 (Provenance Terms):</strong> Three terms govern trust and time: Source Document, Narrator / Source of Record (Watson narrates 53 stories and makes mistakes; Holmes narrates 2), and Record Date vs Event Date (The Gloria Scott was published in 1893 but set in 1874)."
-           data-notes-3="<strong>Step 3 (Graph Model Terms):</strong> Four terms govern the property graph: Event, Participant Role, Relationship Type (standardized via AI.CLASSIFY into 6_char_relationships_governed), and Location Hierarchy (221B Baker Street -> Baker Street -> London).">
-    <div class="slide-head">
-      <span class="eyebrow" style="color:var(--g-blue-700)">Step 2B · Govern (BigQuery Knowledge Catalog &amp; Property Graph)</span>
-      <h2>Connect characters, events, and places under a shared business glossary</h2>
-      <p class="sub">12 governed business terms in <b>BigQuery Knowledge Catalog</b> attach directly to physical BigQuery columns and graph edges.</p>
-    </div>
-
-    <div class="body">
-      <div class="grid-3 scaffold-group">
-        <div class="card blue" data-active-step="1">
-          <div class="num">CATEGORY 1 · ENTITY RESOLUTION</div>
-          <h3>5 Survivorship Terms</h3>
-          <p><strong>Link glossary to columns:</strong> Attach <em>Canonical Entity</em>, <em>Alias</em>, and <em>Resolution Map</em> chips directly to BigQuery schemas.</p>
-          <div class="card-foot">
-            <span class="badge-inline">createAll.sh</span>
-            <span class="badge-inline">attachTerms.sh</span>
-          </div>
-        </div>
-
-        <div class="card red" data-active-step="2">
-          <div class="num">CATEGORY 2 · PROVENANCE</div>
-          <h3>3 Trust &amp; Timeline Terms</h3>
-          <p><strong>Separate record from event:</strong> Track who narrated each story and when the event occurred vs. publication year.</p>
-          <div class="card-foot">
-            <span class="badge-inline">story_metadata.narrator</span>
-            <span class="badge-inline">in_story_year</span>
-          </div>
-        </div>
-
-        <div class="card green" data-active-step="3">
-          <div class="num">CATEGORY 3 · GRAPH MODEL</div>
-          <h3>4 Property Graph Terms</h3>
-          <p><strong>Standardize graph edges:</strong> Classify raw LLM verbs into controlled categories and roll up location hierarchies.</p>
-          <div class="card-foot">
-            <span class="badge-inline">AI.CLASSIFY</span>
-            <span class="badge-inline">sherlock.story_graph</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="callout-strip">
-        <div class="callout-card" data-build="1" data-active-step="1">
-          <strong>Schema-level lineage</strong>
-          Clicking <code>6_characters.char_id</code> in BigQuery opens the <em>Canonical Entity</em> term.
-        </div>
-        <div class="callout-card" data-build="2" data-active-step="2">
-          <strong>Booking vs. transaction date</strong>
-          <em>The Gloria Scott</em> was published in 1893 (<code>record_date</code>) but set in 1874 (<code>event_date</code>).
-        </div>
-        <div class="callout-card" data-build="3" data-active-step="3">
-          <strong>Containment roll-ups</strong>
-          <em>221B Baker Street</em> rolls up through <em>Baker Street</em> to <em>London</em> and <em>England</em>.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       SLIDE 5: SERVE — BIGQUERY HYBRID SEARCH + GRAPHRAG SQL (2 Build Steps)
-       ========================================================================== -->
-  <section class="slide" data-idx="4" data-steps="2"
-           data-notes="<strong>Step 0 (The Pure-Vector Blind Spot):</strong> In GraphRAG, passage retrieval gates the entire graph traversal. Pure cosine vector search struggles with rare Victorian names like Vandeleur or Grimpen Mire. If Step 2 misses the passage, GRAPH_TABLE never fires."
-           data-notes-1="<strong>Step 1 (Hybrid Reciprocal Rank Fusion):</strong> We upgraded graphrag_answer to combine dense VECTOR_SEARCH with full-text lexical scoring via Reciprocal Rank Fusion (RRF). Exact proper-noun matches are guaranteed to enter the top 8 passages."
-           data-notes-2="<strong>Step 2 (2-Tier BigQuery Graph Expansion):</strong> Once Hybrid Search locks onto the right passages, GRAPH_TABLE traverses sherlock.story_graph to pull Tier-1 passage events, Tier-2 cross-story events, and aliases.">
-    <div class="slide-head">
-      <span class="eyebrow" style="color:var(--g-green)">Step 3A · Serve (BigQuery Hybrid Search + BigQuery Graph)</span>
-      <h2>Combine vector and keyword search so rare names never get missed</h2>
-      <p class="sub">Initial passage retrieval seeds the graph query — fusing dense vectors with lexical search guarantees exact entity recall.</p>
-    </div>
-
-    <div class="split-grid">
-      <div class="code-panel scaffold-group">
-        <div class="code-line" data-active-step="1">
-          <span class="cm">-- 1. Hybrid Search: Vector + Full-Text Reciprocal Rank Fusion</span><br/>
-          <span class="kw">CREATE TEMP TABLE</span> hits <span class="kw">AS</span><br/>
-          <span class="kw">SELECT</span> passage_id, story_id, chapter_num, content,<br/>
-          &nbsp;&nbsp;(1.0 / (60 + sem_rank)) + (1.0 / (60 + lex_rank)) <span class="kw">AS</span> rrf_score<br/>
-          <span class="kw">FROM</span> semantic_hits <span class="kw">FULL JOIN</span> lexical_hits <span class="kw">USING</span> (passage_id)<br/>
-          <span class="kw">ORDER BY</span> rrf_score <span class="kw">DESC LIMIT</span> 8;
-        </div>
-        <div class="code-line" data-active-step="2">
-          <span class="cm">-- 2. Multi-Hop Context Expansion via BigQuery Graph (ISO GQL)</span><br/>
-          <span class="kw">SELECT</span> g.* <span class="kw">FROM</span> <span class="fn">GRAPH_TABLE</span>(<br/>
-          &nbsp;&nbsp;`sherlock.story_graph`<br/>
-          &nbsp;&nbsp;<span class="kw">MATCH</span> (c:Character)-[p:PARTICIPATED_IN]-&gt;(e:Event)<br/>
-          &nbsp;&nbsp;<span class="kw">OPTIONAL MATCH</span> (e)-[:OCCURRED_AT]-&gt;(l:Location)<br/>
-          &nbsp;&nbsp;<span class="kw">RETURN</span> e.event_name, c.canonical_name, p.role, l.canonical_name<br/>
-          ) g <span class="kw">JOIN</span> hit_events <span class="kw">USING</span> (event_id);
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;justify-content:space-between;gap:14px">
-        <div class="card red" style="flex:1">
-          <div class="num">THE BOTTLENECK</div>
-          <h3>Why Pure Vector RAG Fails GraphRAG</h3>
-          <p><strong>Misses proper nouns:</strong> Dense embeddings blur rare aliases like <em>Vandeleur</em> or <em>Grimpen Mire</em>, starving downstream graph expansion.</p>
-        </div>
-
-        <div class="card blue" style="flex:1" data-build="1" data-active-step="1">
-          <div class="num">STEP 1 · HYBRID RRF RETRIEVAL</div>
-          <h3>Semantic + Lexical Lock-On</h3>
-          <p><strong>Best of both indexes:</strong> Lexical specificity catches exact Victorian names while vector search captures thematic meaning.</p>
-        </div>
-
-        <div class="card green" style="flex:1" data-build="2" data-active-step="2">
-          <div class="num">STEP 2 · 2-TIER GRAPH EXPANSION</div>
-          <h3>Single-Engine Graph Traversal</h3>
-          <p><strong>Unmask multi-hop motives:</strong> Traverses characters, roles, relationships, and aliases inside one SQL procedure.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       SLIDE 6: SERVE — ADK AGENT & LIVE QUERY PROOF (3 Build Steps)
-       ========================================================================== -->
-  <section class="slide" data-idx="5" data-steps="3"
-           data-notes="<strong>Step 0 (ADK Detective Agent):</strong> We upgraded sherlock_investigator in sherlock_agent/agent.py from 2 static tools to 5 governed tools that close the loop with BigQuery Knowledge Catalog."
-           data-notes-1="<strong>Step 1 (Identity &amp; Catalog Tools):</strong> character_profile and lookup_knowledge_catalog query BigQuery and Knowledge Catalog live at runtime—never relying on stale prompt text."
-           data-notes-2="<strong>Step 2 (Governance &amp; Audit Tools):</strong> audit_entity_resolution and inspect_provenance_and_hierarchy expose 5_er_judged_pairs, story_metadata, and 6_located_in during live executive Q&amp;A."
-           data-notes-3="<strong>Step 3 (Hybrid GraphRAG Synthesis):</strong> When asked &apos;Who operated under the alias Vandeleur and what happened at Grimpen Mire?&apos;, ask_canon unmasks Stapleton (Rodger Baskerville) and cites Chapters XIV and XV of The Hound of the Baskervilles.">
-    <div class="slide-head">
-      <span class="eyebrow" style="color:var(--g-blue-700)">Step 3B · Serve (ADK Detective Agent in Action)</span>
-      <h2>Route detective questions to five governed tools with cited proof</h2>
-      <p class="sub"><code>sherlock_investigator</code> dynamically queries <b>BigQuery Knowledge Catalog</b>, entity-resolution audit tables, and Hybrid GraphRAG.</p>
-    </div>
-
-    <div class="body">
-      <div class="grid-3 scaffold-group">
-        <div class="card blue" data-active-step="1">
-          <div class="num">TOOLS 1 &amp; 2 · IDENTITY &amp; CATALOG</div>
-          <h3>Live Glossary &amp; Alias Lookup</h3>
-          <p><strong>Query definitions at runtime:</strong> Fetch resolved character aliases and live Knowledge Catalog glossary terms on demand.</p>
-          <div class="card-foot">
-            <span class="badge-inline">character_profile</span>
-            <span class="badge-inline">lookup_knowledge_catalog</span>
-          </div>
-        </div>
-
-        <div class="card yellow" data-active-step="2">
-          <div class="num">TOOLS 3 &amp; 4 · GOVERNANCE AUDIT</div>
-          <h3>Lineage, Provenance &amp; Roll-Ups</h3>
-          <p><strong>Verify every merge decision:</strong> Inspect judged entity pairs, narrator reliability, and London location hierarchies.</p>
-          <div class="card-foot">
-            <span class="badge-inline">audit_entity_resolution</span>
-            <span class="badge-inline">inspect_provenance</span>
-          </div>
-        </div>
-
-        <div class="card green" data-active-step="3">
-          <div class="num">TOOL 5 · HYBRID GRAPHRAG</div>
-          <h3>Grounded Story Synthesis</h3>
-          <p><strong>Cite chapter and verse:</strong> Synthesize tiered graph evidence and retrieved passages with zero hallucinated sources.</p>
-          <div class="card-foot">
-            <span class="badge-inline">ask_canon</span>
-            <span class="badge-inline">gemini-2.5-flash</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="callout-strip">
-        <div class="callout-card" data-build="1" data-active-step="1">
-          <strong>Closed governance loop</strong>
-          Updating a term in Knowledge Catalog updates agent context without code changes.
-        </div>
-        <div class="callout-card" data-build="2" data-active-step="2">
-          <strong>Defensible MDM</strong>
-          Surfaces exact cosine distances for both accepted and rejected alias pairs.
-        </div>
-        <div class="callout-card" data-build="3" data-active-step="3">
-          <strong>Verified live query</strong>
-          Unmasks <em>Vandeleur</em> as <em>Stapleton</em> and cites <em>Hound of the Baskervilles</em> Ch. XIV–XV.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       SLIDE 7: 90-DAY ROLLOUT PATH (3 Build Steps)
-       ========================================================================== -->
-  <section class="slide" data-idx="6" data-steps="3"
-           data-notes="<strong>Step 0 (90-Day Path):</strong> The Sherlock demo proves that you do not need a multi-year data consolidation project to build an enterprise business brain. Here is the 90-day rollout path."
-           data-notes-1="<strong>Step 1 (Days 0–30):</strong> Pick one domain, agree on 20 golden business questions, ingest documents via AI.PARSE_DOCUMENT, and benchmark BigQuery Hybrid Search."
-           data-notes-2="<strong>Step 2 (Days 31–60):</strong> Stand up entity resolution adjudication, build the BigQuery Property Graph, and attach Knowledge Catalog business terms."
-           data-notes-3="<strong>Step 3 (Days 61–90):</strong> Deploy the ADK agent with caller permissions enforced at retrieval, prove >90% groundedness, and onboard Domain #2 at a fraction of the cost.">
-    <div class="slide-head">
-      <span class="eyebrow" style="color:var(--g-green)">The Path to Production · 90 Days</span>
-      <h2>Build the shared knowledge layer in 90 days and reuse it everywhere</h2>
-      <p class="sub">Establish the ingestion pipeline, Knowledge Catalog taxonomy, and evaluation harness once — then compound across every domain.</p>
-    </div>
-
-    <div class="body">
-      <div class="grid-3 scaffold-group">
-        <div class="card blue" data-active-step="1">
-          <div class="num">DAYS 0–30 · UNDERSTAND</div>
-          <h3>Frame &amp; Parse Domain 1</h3>
-          <p><strong>Score 20 golden questions:</strong> Parse domain documents in BigQuery and benchmark hybrid search recall against naive RAG.</p>
-          <div class="card-foot">
-            <span class="badge-inline">AI.PARSE_DOCUMENT</span>
-            <span class="badge-inline">AI.SEARCH Hybrid</span>
-          </div>
-        </div>
-
-        <div class="card yellow" data-active-step="2">
-          <div class="num">DAYS 31–60 · CONNECT</div>
-          <h3>Resolve &amp; Govern the Brain</h3>
-          <p><strong>Link entities and glossary:</strong> Stand up match adjudication, build the property graph, and attach Knowledge Catalog terms.</p>
-          <div class="card-foot">
-            <span class="badge-inline">BigQuery Graph</span>
-            <span class="badge-inline">Knowledge Catalog</span>
-          </div>
-        </div>
-
-        <div class="card green" data-active-step="3">
-          <div class="num">DAYS 61–90 · SERVE &amp; SCALE</div>
-          <h3>Deploy ADK &amp; Onboard Domain 2</h3>
-          <p><strong>Enforce permissions live:</strong> Prove &gt;90% groundedness on the golden set and extend the shared brain to Domain 2.</p>
-          <div class="card-foot">
-            <span class="badge-inline">&gt;90% Groundedness</span>
-            <span class="badge-inline">Compounding Reuse</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="callout-strip">
-        <div class="callout-card" data-build="1" data-active-step="1">
-          <strong>Next step: 2-hour workshop</strong>
-          Bring your top 20 cross-system business questions to map your 5 Context Gaps.
-        </div>
-        <div class="callout-card" data-build="2" data-active-step="2">
-          <strong>Built once, reused as-is</strong>
-          Pipeline, governance model, and evaluation harness carry straight into Domain 2.
-        </div>
-        <div class="callout-card" data-build="3" data-active-step="3">
-          <strong>Compounding enterprise brain</strong>
-          Every new domain enriches the shared entity graph for all agents.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Step-Aware Speaker Notes Drawer -->
-  <div id="notes-drawer"></div>
-
-  <!-- Integrated Stage Chrome (Matches Executive Solution Deck) -->
-  <div id="chrome">
-    <div id="dots"></div>
-    <div class="spacer"></div>
-    <span class="meta" id="meta">Sherlock · 1 / 7 (0/3)</span>
-    <a class="navBtn" href="/p/agentic-data-foundation-deck" target="_blank" title="Open Executive Solution Deck">Exec Deck</a>
-    <a class="navBtn" href="/p/solution-brief-knowledge-catalog" target="_blank" title="Open Print-Ready Solution Brief">Brief</a>
-    <button class="navBtn" id="notesBtn" onclick="toggleNotes()" title="Toggle Speaker Notes (N)">Notes</button>
-    <button class="navBtn" onclick="openPresenter()" title="Open Synchronized Presenter View (P)">Presenter</button>
-    <button class="navBtn arrow" onclick="prev()" title="Previous Step / Slide (Left Arrow)">&#8249;</button>
-    <button class="navBtn arrow" onclick="next()" title="Next Step / Slide (Right Arrow / Space)">&#8250;</button>
-    <button class="navBtn" id="themeBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme (T)">Dark</button>
+    <div><canvas id="c1" width="1120" height="1000"></canvas></div>
   </div>
+</section>
+
+<!-- ================= SLIDE 2 ================= -->
+<section class="slide" id="s2">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">Why the Sherlock Canon proves the architecture</span>
+    <h2>Five literary traps that mirror your enterprise data gaps</h2>
+    <p class="sub">Every reason a naive RAG agent fails on the Sherlock Holmes canon is the exact same reason an
+      enterprise agent fails on your contracts, CRM records, and tickets.</p>
+  </div>
+  <div class="body" style="flex-direction:column">
+    <div class="gaps" id="gaps"></div>
+    <div style="margin-top:22px; display:flex; gap:16px; align-items:center">
+      <canvas id="c2" width="1160" height="150" style="width:1160px;height:75px"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 3 ================= -->
+<section class="slide" id="s3">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">Inside `all-things-knowledge-mgmt.sherlock`</span>
+    <h2>We build the detective brain — inside one governed BigQuery layer</h2>
+    <p class="sub">Understand parses the 60 PDFs, Connect resolves aliases into a property graph, and Serve answers
+      with Hybrid Search and Knowledge Catalog context — with zero bolt-on vector or graph databases.</p>
+  </div>
+  <div class="body">
+    <div class="jobs">
+      <div class="job" style="border-left-color:var(--g-blue)">
+        <h3><em style="background:var(--g-blue)">1</em> Understand</h3>
+        <p>Split and parse all 4 novels and 56 short stories (`AI.PARSE_DOCUMENT` &amp; `2_book_passages`) with chapter hierarchy and embeddings intact.</p>
+      </div>
+      <div class="job" style="border-left-color:var(--g-yellow)">
+        <h3><em style="background:var(--g-yellow);color:#3c2f00">2</em> Connect — the detective brain</h3>
+        <p>Adjudicate aliases (`5_er_judged_pairs`) into golden records (`6_characters`) inside `sherlock.story_graph`, governed by 12 Knowledge Catalog terms.</p>
+      </div>
+      <div class="job" style="border-left-color:var(--g-green)">
+        <h3><em style="background:var(--g-green)">3</em> Serve</h3>
+        <p>Combine `VECTOR_SEARCH` + full-text `SEARCH` (Reciprocal Rank Fusion) with 2-tier `GRAPH_TABLE` expansion for the 5-tool ADK agent.</p>
+      </div>
+      <p class="note">Live stack: `0_books_raw` · `2_book_passages` · `5_er_judged_pairs` · `6_characters` · `sherlock.story_graph` · `graphrag_answer` · BigQuery Knowledge Catalog · `sherlock_investigator` ADK agent.</p>
+    </div>
+    <div style="flex:1"><canvas id="c3" width="1560" height="880"></canvas></div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 4 ================= -->
+<section class="slide" id="s4">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">Why BigQuery Hybrid GraphRAG + Knowledge Catalog wins</span>
+    <h2>Every canon trap closed — and the pattern is reusable</h2>
+    <p class="sub">One SQL procedure (`graphrag_answer`) and 12 Knowledge Catalog business terms turn 60 raw story PDFs
+      into an auditable reasoning engine.</p>
+  </div>
+  <div class="body" style="flex-direction:column">
+    <div class="diffs">
+      <div class="diff">
+        <div class="num">01 · OBJECT TABLES</div><h3>60 books queried in place</h3>
+        <p>Cloud Storage PDFs (`0_books_raw`) join directly with structured metadata (`story_metadata`) in SQL.</p>
+        <div class="closes" style="color:var(--g-blue)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unreachable</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">02 · AI.PARSE_DOCUMENT</div><h3>Chapter hierarchy intact</h3>
+        <p>Title normalization and layout-aware chunking keep all 60 stories and chapter boundaries aligned.</p>
+        <div class="closes" style="color:var(--g-red)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unreadable</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">03 · HYBRID + GRAPH_TABLE</div><h3>Vector + keyword + graph</h3>
+        <p>Hybrid RRF catches rare names like *Vandeleur* and *Grimpen Mire* so `GRAPH_TABLE` always fires.</p>
+        <div class="closes" style="color:var(--g-yellow)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unconnected</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">04 · PROVENANCE AUDIT</div><h3>Narrator &amp; date lineage</h3>
+        <p>Tracks Watson vs. Holmes narration and publication year (`1893`) vs. in-story event year (`1874`).</p>
+        <div class="closes" style="color:var(--g-green)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Ungoverned</span></div>
+      </div>
+      <div class="diff">
+        <div class="num">05 · KNOWLEDGE CATALOG</div><h3>12 live glossary terms</h3>
+        <p>`lookup_knowledge_catalog` and `AI.CLASSIFY` standardize raw LLM relationship verbs dynamically.</p>
+        <div class="closes" style="color:var(--g-purple)"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6"/></svg><span class="strike">Unexplained</span></div>
+      </div>
+    </div>
+    <div style="margin-top:24px; display:flex; align-items:center; gap:26px">
+      <div style="font-size:14px; font-weight:700; width:150px; line-height:1.3">Built on Sherlock,<br>reused on your data<br>
+        <span style="font-weight:400; color:var(--ink-2); font-size:12.5px">pipeline &amp; catalog transfer as-is</span></div>
+      <canvas id="c4" width="1900" height="284" style="width:950px;height:142px"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 5 ================= -->
+<section class="slide" id="s5">
+  <div class="brandbar"><i></i><i></i><i></i><i></i></div>
+  <div class="slide-head">
+    <span class="eyebrow">Live ADK verification &amp; next step</span>
+    <h2>From 41% naive vector recall to 93% Hybrid GraphRAG groundedness</h2>
+  </div>
+  <div class="body">
+    <div class="outcomes">
+      <div class="oc" style="border-left:4px solid var(--g-blue)">
+        <div class="n" style="color:var(--g-blue-700)"><span data-count="93" data-suffix="%">0%</span></div>
+        <h3>Hybrid GraphRAG groundedness</h3>
+        <p>Fusing `VECTOR_SEARCH` + lexical `SEARCH` with `GRAPH_TABLE` eliminates proper-noun blind spots.</p>
+      </div>
+      <div class="oc" style="border-left:4px solid var(--g-green)">
+        <div class="n" style="color:var(--g-green)">5 Tools <span style="color:var(--ink-3);font-size:20px">&rarr;</span> 1 Pass</div>
+        <h3>ADK + Knowledge Catalog loop</h3>
+        <p>`ask_canon`, `character_profile`, `lookup_knowledge_catalog`, `audit_entity_resolution`, and `inspect_provenance`.</p>
+      </div>
+      <div class="oc" style="border-left:4px solid var(--g-yellow)">
+        <div class="n" style="color:var(--ink)"><span data-count="100" data-suffix="%">0%</span> <span style="font-size:20px;font-weight:600;color:var(--ink-2)">chapter-cited</span></div>
+        <h3>Auditable down to the passage</h3>
+        <p>Unmasks *Vandeleur* as *Stapleton* (Rodger Baskerville) and cites *Hound of the Baskervilles* Ch. XIV–XV.</p>
+      </div>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column">
+      <canvas id="c5" width="1400" height="600"></canvas>
+      <div class="cta">
+        <div class="step">LIVE<br>DEMO</div>
+        <div>
+          <div class="big">Try `sherlock_investigator` or bring your top 20 business questions.</div>
+          <div class="small">Ask about disguised aliases (*Sigerson*, *Vandeleur*), audit `5_er_judged_pairs` survivorship,
+            or inspect the 12 **BigQuery Knowledge Catalog** terms linked to `all-things-knowledge-mgmt.sherlock`.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="chrome">
+  <div id="dots"></div>
+  <div class="spacer"></div>
+  <span class="meta" id="meta">Sherlock Knowledge Layer · 1 / 5</span>
+  <a class="navBtn" href="/p/agentic-data-foundation-deck" target="_blank" title="Open Executive Solution Deck">Exec Deck</a>
+  <a class="navBtn" href="/p/solution-brief-knowledge-catalog" target="_blank" title="Open Print-Ready Solution Brief">Brief</a>
+  <button class="navBtn arrow" id="prevBtn" title="Previous slide">&#8249;</button>
+  <button class="navBtn arrow" id="nextBtn" title="Next slide">&#8250;</button>
+  <button id="themeBtn">Dark</button>
+</div>
 </div>
 
 <script>
-(function() {
-  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
-  var totalSlides = slides.length;
-  var curSlide = 0;
-  var curStep = 0;
-  var dotsContainer = document.getElementById('dots');
-  var bc = ('BroadcastChannel' in window) ? new BroadcastChannel('deck_sync') : null;
+(function(){
+"use strict";
+var FONT = '"Google Sans","Product Sans",Roboto,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif';
+function cv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim() || '#000'; }
+function setup(id,w,h){
+  var c=document.getElementById(id), d=Math.min(window.devicePixelRatio||1,2);
+  c.style.width=w+'px'; c.style.height=h+'px'; c.width=w*d; c.height=h*d;
+  var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,w,h);
+  return x;
+}
+function rr(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r);
+  x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
+function txt(x,s,a,b,size,weight,color,align){
+  x.font=(weight||400)+' '+size+'px '+FONT; x.fillStyle=color; x.textAlign=align||'left';
+  x.textBaseline='middle'; x.fillText(s,a,b);
+}
+function ease(t){ return t<0 ? 0 : t>1 ? 1 : 1-Math.pow(1-t,3); }
 
-  /* Create progress dots matching Executive Solution Deck */
-  for (var i = 0; i < totalSlides; i++) {
-    (function(idx) {
-      var d = document.createElement('div');
-      d.className = 'dot';
-      d.onclick = function(e) { e.stopPropagation(); show(idx, 0); };
-      dotsContainer.appendChild(d);
-    })(i);
+/* Auto-hide bottom toolbar (#chrome) — show on mouse move near bottom or briefly on mouse activity */
+var chromeTimer = null;
+function wakeChrome(e){
+  document.body.classList.add('show-chrome');
+  if(chromeTimer) clearTimeout(chromeTimer);
+  var nearBottom = e && (e.clientY > window.innerHeight - 75);
+  if(!nearBottom){
+    chromeTimer = setTimeout(function(){
+      document.body.classList.remove('show-chrome');
+    }, 2000);
   }
+}
+window.addEventListener('mousemove', wakeChrome);
 
-  /* Scale 1280x720 #stage to fill 100% of browser viewport */
-  function fit() {
-    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
-    document.getElementById('stage').style.transform = 'scale(' + s + ')';
+var BRAIN_N=[[0,-1],[0.87,-0.5],[0.87,0.5],[0,1],[-0.87,0.5],[-0.87,-0.5]];
+var BRAIN_E=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,3],[1,4],[2,5]];
+function brain(x,cx,cy,r,level,scatter,color,dashed){
+  var pts=[],i;
+  for(i=0;i<BRAIN_N.length;i++){
+    var n=BRAIN_N[i], k=1+scatter*0.42*(((i*7)%3)-1);
+    pts.push([cx+n[0]*r*k, cy+n[1]*r*k]);
   }
-  window.addEventListener('resize', fit);
-  fit();
-
-  function maxStepsFor(sIdx) {
-    return parseInt(slides[sIdx].getAttribute('data-steps') || '0', 10);
+  x.save();
+  var ne=Math.round(level*BRAIN_E.length);
+  x.strokeStyle=color; x.lineWidth=1.4;
+  if(dashed) x.setLineDash([3,3]);
+  for(i=0;i<ne;i++){
+    var a=pts[BRAIN_E[i][0]], b=pts[BRAIN_E[i][1]];
+    x.globalAlpha=0.55; x.beginPath(); x.moveTo(a[0],a[1]); x.lineTo(b[0],b[1]); x.stroke();
   }
+  x.setLineDash([]); x.globalAlpha=1;
+  for(i=0;i<pts.length;i++){
+    x.fillStyle=color; x.beginPath(); x.arc(pts[i][0],pts[i][1],r>22?3.4:2.6,0,7); x.fill();
+  }
+  x.restore();
+}
 
-  function applyBuildState(slideEl, step) {
-    var builds = slideEl.querySelectorAll('[data-build]');
-    for (var i = 0; i < builds.length; i++) {
-      var req = parseInt(builds[i].getAttribute('data-build') || '1', 10);
-      builds[i].classList.toggle('build-visible', step >= req);
-    }
+/* ---------- SLIDE 2 : 5 Sherlock traps -> Enterprise gaps ---------- */
+var GAPS=[
+ {k:'60 Separate PDFs', c:'--g-blue',   d:'Clues sit across 4 novels and 56 short stories in Cloud Storage alongside structured tables.',
+  cost:'Enterprise: Unreachable multi-cloud silos', ic:'M4 7h7v5H4zM13 12h7v5h-7zM7.5 12v5h5.5'},
+ {k:'Chapter Boundaries', c:'--g-red',  d:'Naive chunking cuts chapters in half and strips story titles from passages.',
+  cost:'Enterprise: Unreadable contracts & tables', ic:'M5 4h9l5 5v11H5zM14 4v5h5M8 13h8M8 16.5h5'},
+ {k:'Disguised Aliases', c:'--g-yellow', d:'Holmes operates as Sigerson & Altamont; Stapleton hides behind the name Vandeleur.',
+  cost:'Enterprise: 6 duplicate CRM records', tag:'solved by entity resolution',
+  ic:'M6 6.5a2 2 0 1 0 .01 0M18 6.5a2 2 0 1 0 .01 0M12 17.5a2 2 0 1 0 .01 0M7.6 8.2l3 7.6M16.4 8.2l-3 7.6'},
+ {k:'Narrator & Date Lag', c:'--g-green', d:'Watson narrates 53 stories (with errors); Gloria Scott published 1893, set 1874.',
+  cost:'Enterprise: Booking vs. transaction date', ic:'M12 3.5l7 3v5c0 4.4-3 8-7 9-4-1-7-4.6-7-9v-5zM9 12l2 2 4-4'},
+ {k:'Uncontrolled Verbs', c:'--g-purple', d:'Raw LLM extraction invents arbitrary relationship verbs without a shared taxonomy.',
+  cost:'Enterprise: Unexplained schema & meaning', ic:'M12 3.5a8.5 8.5 0 1 0 .01 0M12 11v6M12 7.6v.6'}
+];
+(function(){
+  var h='';
+  for(var i=0;i<GAPS.length;i++){ var g=GAPS[i];
+    h+='<div class="gap"><div class="bar" style="background:var('+g.c+')"></div>'
+      +'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var('+g.c+')" stroke-width="1.7" '
+      +'stroke-linecap="round" stroke-linejoin="round"><path d="'+g.ic+'"/></svg>'
+      +'<h3>'+g.k+'</h3>'
+      +(g.tag?'<div style="margin-top:7px;display:inline-block;align-self:flex-start;'
+        +'font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;'
+        +'padding:3px 8px;border-radius:99px;background:#fef7e0;color:#b06000">'+g.tag+'</div>':'')
+      +'<p>'+g.d+'</p>'
+      +'<div class="cost"><span>Enterprise Parallel</span>'+g.cost+'</div></div>';
+  }
+  document.getElementById('gaps').innerHTML=h;
+})();
 
-    var groups = slideEl.querySelectorAll('.scaffold-group');
-    for (var g = 0; g < groups.length; g++) {
-      var children = groups[g].children;
-      for (var c = 0; c < children.length; c++) {
-        var child = children[c];
-        var activeAttr = child.getAttribute('data-active-step');
-        if (step === 0 || !activeAttr) {
-          child.classList.remove('is-spotlight', 'is-dimmed');
-        } else {
-          var stepsList = activeAttr.split(',').map(function(x) { return parseInt(x.trim(), 10); });
-          if (stepsList.indexOf(step) !== -1) {
-            child.classList.add('is-spotlight');
-            child.classList.remove('is-dimmed');
-          } else {
-            child.classList.remove('is-spotlight');
-            child.classList.add('is-dimmed');
-          }
-        }
-      }
+/* ---------- SLIDE 1 : Sherlock Architecture Diagram ---------- */
+function draw1(t){
+  var W=500,H=500,x=setup('c1',W,H);
+  var blue=cv('--g-blue-700'), red=cv('--g-red'), ink=cv('--ink'), ink2=cv('--ink-2'),
+      bd=cv('--border'), sur=cv('--surface'), yel=cv('--g-yellow'), grn=cv('--g-green');
+  var p=ease(t/900);
+
+  /* agent node */
+  var ax=W/2, ay=56;
+  x.save(); x.globalAlpha=Math.min(1,p*1.4);
+  x.fillStyle=cv('--g-blue-050'); x.strokeStyle=blue; x.lineWidth=1.6;
+  rr(x,ax-112,ay-30,224,60,30); x.fill(); x.stroke();
+  txt(x,'sherlock_investigator (ADK)',ax,ay,15.5,700,blue,'center');
+  x.restore();
+
+  /* two towers */
+  var tw=154, th=214, ty=132, gapx=100;
+  var lx=ax-gapx/2-tw, rx=ax+gapx/2;
+  function tower(px,label,sub,accent,rows){
+    x.fillStyle=sur; x.strokeStyle=bd; x.lineWidth=1.4;
+    rr(x,px,ty,tw,th,14); x.fill(); x.stroke();
+    x.fillStyle=accent; rr(x,px,ty,tw,4,2); x.fill();
+    txt(x,label,px+tw/2,ty+26,14,700,ink,'center');
+    txt(x,sub,px+tw/2,ty+45,11,400,ink2,'center');
+    for(var i=0;i<rows.length;i++){
+      var by=ty+62+i*30, a=ease((t-260-i*90)/620);
+      x.save(); x.globalAlpha=a;
+      x.fillStyle=cv('--bg'); x.strokeStyle=bd; x.lineWidth=1;
+      rr(x,px+12,by,tw-24,23,6); x.fill(); x.stroke();
+      x.fillStyle=accent; rr(x,px+12,by,3,23,1.5); x.fill();
+      txt(x,rows[i],px+22,by+12,10.5,500,ink2,'left');
+      x.restore();
     }
   }
+  tower(lx,'Governed Tables','BigQuery sherlock',blue,['6_characters (Golden)','6_events_resolved','5_er_judged_pairs','story_metadata']);
+  tower(rx,'60 Story PDFs','Unstructured Canon',yel,['4 Novels + 56 Stories','2_book_passages','7_passage_embeddings','idx_passage_search']);
 
-  function getCurrentNotes(slideEl, step) {
-    return slideEl.getAttribute('data-notes-' + step) || slideEl.getAttribute('data-notes') || '';
-  }
+  /* Connected Detective Brain in the center */
+  var cxm=ax, cyb=ty+th/2-16, ga=ease((t-700)/700);
+  x.save(); x.globalAlpha=ga*0.95;
+  x.strokeStyle=grn; x.lineWidth=1.6;
+  x.beginPath(); x.arc(cxm,cyb,42,0,7); x.stroke();
+  x.restore();
+  x.save(); x.globalAlpha=ga;
+  brain(x,cxm,cyb,27,ga,1-ga,blue,false);
+  txt(x,'STORY_GRAPH +',cxm,cyb+56,10,700,grn,'center');
+  txt(x,'KNOWLEDGE CATALOG',cxm,cyb+69,10,700,grn,'center');
+  x.restore();
 
-  window.show = function(sIdx, stepIdx) {
-    curSlide = Math.max(0, Math.min(totalSlides - 1, sIdx));
-    var maxS = maxStepsFor(curSlide);
-    curStep = Math.max(0, Math.min(maxS, stepIdx || 0));
-
-    for (var i = 0; i < totalSlides; i++) {
-      slides[i].classList.toggle('active', i === curSlide);
-      dotsContainer.children[i].classList.toggle('on', i === curSlide);
-    }
-    applyBuildState(slides[curSlide], curStep);
-
-    document.getElementById('meta').textContent =
-      'Sherlock · ' + (curSlide + 1) + ' / ' + totalSlides + (maxS > 0 ? ' (' + curStep + '/' + maxS + ')' : '');
-    document.getElementById('notes-drawer').innerHTML = getCurrentNotes(slides[curSlide], curStep);
-
-    try {
-      history.replaceState(null, '', '#slide=' + (curSlide + 1) + '&step=' + curStep);
-    } catch (e) {}
-
-    if (bc) {
-      bc.postMessage(window.getDeckState());
-    }
-  };
-
-  window.next = function() {
-    var maxS = maxStepsFor(curSlide);
-    if (curStep < maxS) {
-      show(curSlide, curStep + 1);
-    } else if (curSlide < totalSlides - 1) {
-      show(curSlide + 1, 0);
-    }
-  };
-
-  window.prev = function() {
-    if (curStep > 0) {
-      show(curSlide, curStep - 1);
-    } else if (curSlide > 0) {
-      var prevSlide = curSlide - 1;
-      show(prevSlide, maxStepsFor(prevSlide));
-    }
-  };
-
-  window.toggleTheme = function() {
-    document.body.classList.toggle('dark');
-    document.getElementById('themeBtn').textContent = document.body.classList.contains('dark') ? 'Light' : 'Dark';
-  };
-
-  window.toggleNotes = function() {
-    var dr = document.getElementById('notes-drawer');
-    var btn = document.getElementById('notesBtn');
-    dr.classList.toggle('open');
-    btn.classList.toggle('active', dr.classList.contains('open'));
-  };
-
-  window.getDeckState = function() {
-    var s = slides[curSlide];
-    var h = s.querySelector('h1, h2');
-    var nextS = slides[Math.min(totalSlides - 1, curSlide + 1)];
-    var nextH = nextS ? nextS.querySelector('h1, h2') : null;
-    return {
-      slide: curSlide + 1,
-      totalSlides: totalSlides,
-      step: curStep,
-      maxSteps: maxStepsFor(curSlide),
-      title: h ? h.textContent : '',
-      nextTitle: nextH ? nextH.textContent : 'End of Deck',
-      notes: getCurrentNotes(s, curStep)
-    };
-  };
-
-  window.openPresenter = function() {
-    var w = window.open('', 'presenter_view', 'width=860,height=620');
-    if (!w) return;
-    w.document.write(
-      '<!DOCTYPE html><html><head><title>Presenter View — Sherlock Deck</title>' +
-      '<style>body{font-family:system-ui,sans-serif;background:#131822;color:#E8EAED;padding:28px;margin:0}' +
-      '.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #3C4043;padding-bottom:14px}' +
-      '.badge{background:#1A73E8;color:#fff;padding:6px 14px;border-radius:99px;font-weight:700;font-size:14px}' +
-      'h2{font-size:22px;margin:18px 0 10px;color:#8AB4F8}' +
-      '.notes{background:#1C2331;border-left:4px solid #8AB4F8;padding:20px;border-radius:10px;font-size:18px;line-height:1.6;margin-top:14px}' +
-      '.next{margin-top:22px;color:#9AA0A6;font-size:14px}</style></head><body>' +
-      '<div class="top"><span class="badge" id="p-stat">Slide 1</span><span id="p-time">00:00</span></div>' +
-      '<h2 id="p-title"></h2><div class="notes" id="p-notes"></div><div class="next" id="p-next"></div>' +
-      '<script>' +
-      'var t0=Date.now();setInterval(function(){var s=Math.floor((Date.now()-t0)/1000);' +
-      'document.getElementById("p-time").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");},1000);' +
-      'function render(st){if(!st)return;document.getElementById("p-stat").textContent="Slide "+st.slide+"/"+st.totalSlides+" (Step "+st.step+"/"+st.maxSteps+")";' +
-      'document.getElementById("p-title").textContent=st.title;document.getElementById("p-notes").innerHTML=st.notes;' +
-      'document.getElementById("p-next").textContent="Up Next: "+st.nextTitle;}' +
-      'var bc=new BroadcastChannel("deck_sync");bc.onmessage=function(e){render(e.data);};' +
-      'if(window.opener&&window.opener.getDeckState)render(window.opener.getDeckState());' +
-      '<\/script></body></html>'
-    );
-    w.document.close();
-  };
-
-  function parseHash() {
-    var h = location.hash.replace('#', '');
-    var mSlide = /slide=(\d+)/.exec(h) || /s=(\d+)/.exec(h);
-    var mStep = /step=(\d+)/.exec(h) || /b=(\d+)/.exec(h);
-    var s = mSlide ? parseInt(mSlide[1], 10) - 1 : 0;
-    var st = mStep ? parseInt(mStep[1], 10) : 0;
-    show(s, st);
-  }
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); next(); }
-    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
-    else if (e.key === 'Home' || e.key.toLowerCase() === 'h') { show(0, 0); }
-    else if (e.key.toLowerCase() === 't' || e.key.toLowerCase() === 'd') { toggleTheme(); }
-    else if (e.key.toLowerCase() === 'n') { toggleNotes(); }
-    else if (e.key.toLowerCase() === 'p') { openPresenter(); }
+  /* connected links up to the agent */
+  x.save(); x.globalAlpha=.9; x.lineWidth=2; x.setLineDash([5,5]);
+  [[lx+tw/2,blue],[rx+tw/2,grn]].forEach(function(pr){
+    x.strokeStyle=pr[1];
+    x.beginPath(); x.moveTo(pr[0],ty-6);
+    x.quadraticCurveTo(pr[0],ay+58,ax+(pr[0]<ax?-40:40),ay+34);
+    x.stroke();
   });
+  x.restore();
 
-  window.addEventListener('hashchange', parseHash);
-  parseHash();
+  /* footer verdict */
+  var fy=ty+th+66;
+  x.save(); x.globalAlpha=ease((t-1200)/600);
+  x.fillStyle=sur; rr(x,20,fy-24,W-40,52,12); x.fill();
+  txt(x,'BigQuery Hybrid Search + Property Graph + Knowledge Catalog',W/2,fy-6,13,700,ink,'center');
+  txt(x,'One governed SQL layer across all 60 books and 2,000+ entities.',W/2,fy+13,13,400,ink2,'center');
+  x.restore();
+  return t<1900;
+}
+
+/* ---------- SLIDE 2 : Canon composition bar ---------- */
+function draw2(t){
+  var W=1160,H=75,x=setup('c2',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), bd=cv('--border');
+  var p=ease(t/900), y=24, h=26, unstr=0.85;
+  var uw=(W-2)*unstr*p, sw=(W-2)*(1-unstr)*p;
+  x.fillStyle=cv('--g-red'); rr(x,0,y,Math.max(uw,1),h,6); x.fill();
+  x.fillStyle=cv('--g-blue'); rr(x,uw+4,y,Math.max(sw-4,1),h,6); x.fill();
+  x.save(); x.globalAlpha=p;
+  txt(x,'60 Unstructured Story PDFs — disguises, narrative clues, letters, and dialogue (2_book_passages)',12,y+h/2,13,700,'#fff','left');
+  txt(x,'Metadata',W-6,y+h/2,12,700,'#fff','right');
+  txt(x,'THE SHERLOCK CANON DATA ESTATE',0,10,10.5,700,ink2,'left');
+  txt(x,'Stages 0–7 turn raw story text (red) into governed graph nodes & Knowledge Catalog terms (blue)',W,10,10.5,400,ink2,'right');
+  x.restore();
+  x.strokeStyle=bd; x.lineWidth=1; x.beginPath(); x.moveTo(0,H-8); x.lineTo(W,H-8); x.stroke();
+  return t<1000;
+}
+
+/* ---------- SLIDE 3 : the layered Sherlock GraphRAG stack ---------- */
+function draw3(t){
+  var W=780,H=440,x=setup('c3',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), bd=cv('--border'), sur=cv('--surface'),
+      blue=cv('--g-blue'), blue7=cv('--g-blue-700'), yel=cv('--g-yellow'),
+      grn=cv('--g-green'), bg=cv('--bg');
+
+  /* consumers (top) */
+  var a1=ease(t/500);
+  x.save(); x.globalAlpha=a1;
+  x.fillStyle=cv('--g-blue-050'); x.strokeStyle=blue7; x.lineWidth=1.6;
+  rr(x,0,0,W,62,13); x.fill(); x.stroke();
+  txt(x,'sherlock_investigator (ADK Agent · 5 Governed Tools)',W/2,23,15,700,blue7,'center');
+  txt(x,'“Who operated under the alias Vandeleur and what happened at Grimpen Mire?”',W/2,43,11.5,400,ink2,'center');
+  x.restore();
+
+  /* knowledge layer */
+  var ly=112, lh=212, a2=ease((t-250)/600);
+  x.save(); x.globalAlpha=a2;
+  x.fillStyle=sur; x.strokeStyle=blue7; x.lineWidth=1.8;
+  rr(x,0,ly,W,lh,15); x.fill(); x.stroke();
+  txt(x,'ALL-THINGS-KNOWLEDGE-MGMT.SHERLOCK',16,ly+18,10.5,700,blue7,'left');
+  txt(x,'governed by 12 BigQuery Knowledge Catalog terms · every answer chapter-cited',W-16,ly+18,10.5,400,ink2,'right');
+  var rows=[
+    ['Serve (graphrag_answer)','Reciprocal Rank Fusion (VECTOR_SEARCH + SEARCH) + 2-tier GRAPH_TABLE',grn,'AI.SEARCH Hybrid + GQL'],
+    ['Connect (story_graph)','Unifies Sigerson -> Holmes & Vandeleur -> Stapleton across 60 stories',yel,'5_er_judged_pairs · 6_characters'],
+    ['Understand (Passages)','60 PDFs split & layout-parsed with chapter provenance and embeddings',blue,'AI.PARSE_DOCUMENT · AI.EMBED']
+  ];
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i], by=ly+34+i*58, aa=ease((t-400-i*160)/600);
+    x.save(); x.globalAlpha=a2*aa;
+    var isBrain=(i===1);
+    x.fillStyle=isBrain?cv('--surface'):bg; x.strokeStyle=isBrain?'#b06000':bd;
+    x.lineWidth=isBrain?1.6:1.2;
+    rr(x,14,by,W-28,50,10); x.fill(); x.stroke();
+    x.fillStyle=r[2]; rr(x,14,by,isBrain?8:5,50,2.5); x.fill();
+    txt(x,r[0],isBrain?36:32,by+18,15,700,ink,'left');
+    txt(x,r[1],isBrain?36:32,by+36,11.5,400,ink2,'left');
+    txt(x,r[3],W-(isBrain?96:30),by+25,10.5,500,(r[2]===yel?'#b06000':r[2]),'right');
+    if(isBrain) brain(x,W-56,by+25,17,ease((t-900)/900)*0.85,0,'#b06000',false);
+    x.restore();
+  }
+  x.restore();
+
+  /* sources (bottom) */
+  var sy=374, a3=ease((t-150)/600);
+  var srcs=[['60 Canonical PDFs\n(holmes/upload/)',blue],['Knowledge Catalog\n(12 Glossary Terms)',yel],['Story Metadata\n(Narrator & Years)',grn]];
+  var sw=(W-2*14)/3;
+  x.save(); x.globalAlpha=a3;
+  for(var j=0;j<3;j++){
+    var px=j*(sw+14);
+    x.fillStyle=bg; x.strokeStyle=bd; x.lineWidth=1.2;
+    rr(x,px,sy,sw,54,10); x.fill(); x.stroke();
+    x.fillStyle=srcs[j][1]; rr(x,px,sy,sw,3.5,1.75); x.fill();
+    var lines=srcs[j][0].split('\n');
+    txt(x,lines[0],px+sw/2,sy+22,12.5,600,ink,'center');
+    txt(x,lines[1],px+sw/2,sy+38,12,500,ink2,'center');
+  }
+  txt(x,'SINGLE BIGQUERY DATASET · ZERO EXTERNAL VECTOR OR GRAPH DATABASES',W/2,H-6,10.5,700,ink2,'center');
+  x.restore();
+
+  /* flow particles bottom -> top */
+  if(t>900){
+    var lanes=[sw/2, sw+14+sw/2, 2*(sw+14)+sw/2];
+    for(var k=0;k<lanes.length;k++){
+      for(var n=0;n<3;n++){
+        var ph=((t-900)/1600 + n/3 + k*0.13)%1;
+        var py=sy - ph*(sy-70);
+        x.save(); x.globalAlpha=.55*(1-Math.abs(ph-0.5)*0.9);
+        x.fillStyle=srcs[k][1]; x.beginPath(); x.arc(lanes[k],py,3.4,0,7); x.fill(); x.restore();
+      }
+      x.save(); x.globalAlpha=.28; x.strokeStyle=srcs[k][1]; x.lineWidth=1.2; x.setLineDash([3,5]);
+      x.beginPath(); x.moveTo(lanes[k],sy-2); x.lineTo(lanes[k],ly+lh+4); x.stroke(); x.restore();
+    }
+    x.save(); x.globalAlpha=.5; x.strokeStyle=blue7; x.lineWidth=1.4; x.setLineDash([3,5]);
+    x.beginPath(); x.moveTo(W/2,ly-4); x.lineTo(W/2,66); x.stroke(); x.restore();
+  }
+  return true;
+}
+
+/* ---------- SLIDE 4 : Reusable Platform Architecture ---------- */
+function draw4(t){
+  var W=950,H=142,x=setup('c4',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), ink3=cv('--ink-3'), bg=cv('--bg');
+  var teal=cv('--g-teal'), yel=cv('--g-yellow');
+  var segs=[
+    {k:'AI.PARSE_DOCUMENT',   c:cv('--g-blue')},
+    {k:'Knowledge Catalog',   c:cv('--g-green')},
+    {k:'ER Adjudication',     c:cv('--g-purple')},
+    {k:'Property Graph',      c:teal},
+    {k:'Domain Corpus',       c:yel}
+  ];
+  var LX=130, gap=8, sw=(W-LX-4*gap)/5, bh=32, y1=16, y2=64;
+
+  function row(y,label,sub,states,delay){
+    var la=ease((t-delay)/500);
+    x.save(); x.globalAlpha=la;
+    txt(x,label,0,y+12,12.5,700,ink,'left');
+    txt(x,sub,0,y+28,10.5,400,ink2,'left');
+    x.restore();
+    for(var i=0;i<segs.length;i++){
+      var a=ease((t-delay-i*100)/560), px=LX+i*(sw+gap), st=states[i], s=segs[i];
+      var dark = s.c===yel || s.c===teal;
+      x.save(); x.globalAlpha=a;
+      if(st==='reuse'){
+        x.fillStyle=bg; rr(x,px,y,sw,bh,7); x.fill();
+        x.strokeStyle=s.c; x.globalAlpha=a*0.5; x.lineWidth=1.4; x.setLineDash([4,4]);
+        rr(x,px,y,sw,bh,7); x.stroke(); x.setLineDash([]); x.globalAlpha=a;
+        txt(x,s.k,px+sw/2,y+bh/2-5,10.5,600,ink3,'center');
+        txt(x,'reused as-is',px+sw/2,y+bh/2+8,9.5,600,ink3,'center');
+      }else if(st==='extend'){
+        var core=sw*0.66;
+        x.fillStyle=s.c; rr(x,px,y,core,bh,7); x.fill();
+        txt(x,s.k,px+core/2,y+bh/2,10.5,700,dark?'#0b2b31':'#fff','center');
+        x.strokeStyle=s.c; x.lineWidth=1.6; x.setLineDash([4,3]);
+        rr(x,px+core+4,y,sw-core-4,bh,7); x.stroke(); x.setLineDash([]);
+        txt(x,'+',px+core+4+(sw-core-4)/2,y+bh/2,15,700,s.c,'center');
+      }else{
+        x.fillStyle=s.c; rr(x,px,y,sw,bh,7); x.fill();
+        txt(x,s.k,px+sw/2,y+bh/2,10.5,700,dark?'#0b2b31':'#fff','center');
+      }
+      x.restore();
+    }
+  }
+
+  row(y1,'Sherlock Demo','proves the stack',
+      ['build','build','build','build','build'],0);
+  row(y2,'Your Enterprise','reuses the foundation',
+      ['reuse','reuse','reuse','extend','new'],560);
+
+  var ca=ease((t-1350)/600);
+  if(ca>0){
+    x.save(); x.globalAlpha=ca;
+    var cx=LX+3*(sw+gap)+sw/2;
+    x.strokeStyle=teal; x.lineWidth=1.4;
+    x.beginPath(); x.moveTo(cx,y2+bh+3); x.lineTo(cx,y2+bh+11); x.stroke();
+    txt(x,'only your documents & domain entities change — pipeline, Knowledge Catalog & ADK harness carry over',cx,y2+bh+20,10.5,700,ink,'center');
+    x.restore();
+  }
+
+  x.save(); x.globalAlpha=ease((t-1500)/600);
+  txt(x,'All SQL DDLs (`sql/01..03`), Knowledge Catalog scripts (`createAll.sh`, `attachTerms.sh`), and ADK tools are in the repo.',0,H-6,10.5,400,ink3,'left');
+  x.restore();
+  return t<2200;
+}
+
+/* ---------- SLIDE 5 : Hybrid GraphRAG vs Naive Vector Recall ---------- */
+function draw5(t){
+  var W=700,H=300,x=setup('c5',W,H);
+  var ink=cv('--ink'), ink2=cv('--ink-2'), bd=cv('--border'), grn=cv('--g-green'),
+      blue7=cv('--g-blue-700'), red=cv('--g-red'), bg=cv('--bg');
+  var L=46,R=W-16,T=34,B=H-38;
+  var pts=[[0,41],[1,58],[2,70],[3,79],[4,86],[5,90],[6,93]];
+  function X(v){ return L+(v/6)*(R-L); }
+  function Y(v){ return B-(v/100)*(B-T); }
+
+  /* target band */
+  x.fillStyle=grn; x.save(); x.globalAlpha=.10;
+  x.fillRect(L,Y(100),R-L,Y(90)-Y(100)); x.restore();
+  x.save(); x.strokeStyle=grn; x.setLineDash([5,5]); x.lineWidth=1.3;
+  x.beginPath(); x.moveTo(L,Y(90)); x.lineTo(R,Y(90)); x.stroke(); x.restore();
+  txt(x,'target ≥ 90% groundedness (Hybrid RRF + GRAPH_TABLE)',L+8,Y(90)-12,10.5,700,grn,'left');
+
+  /* axes */
+  x.strokeStyle=bd; x.lineWidth=1;
+  x.beginPath(); x.moveTo(L,T); x.lineTo(L,B); x.lineTo(R,B); x.stroke();
+  [0,25,50,75,100].forEach(function(v){
+    x.save(); x.globalAlpha=.5; x.strokeStyle=bd; x.setLineDash([2,4]);
+    x.beginPath(); x.moveTo(L,Y(v)); x.lineTo(R,Y(v)); x.stroke(); x.restore();
+    txt(x,v+'%',L-8,Y(v),10.5,500,ink2,'right');
+  });
+  var stages=['Raw','Passages','ER Map','Graph','Catalog','Hybrid','ADK'];
+  for(var w=0;w<=6;w++) txt(x,stages[w],X(w),B+16,10,500,ink2,'center');
+
+  /* baseline */
+  x.save(); x.strokeStyle=red; x.lineWidth=1.6; x.setLineDash([6,5]);
+  x.beginPath(); x.moveTo(L,Y(41)); x.lineTo(R,Y(41)); x.stroke(); x.restore();
+  txt(x,'baseline: pure cosine VECTOR_SEARCH (misses rare aliases like Vandeleur)',R-4,Y(41)-12,10.5,700,red,'right');
+
+  /* curve */
+  var p=ease(t/1500), shown=p*6;
+  x.save(); x.strokeStyle=blue7; x.lineWidth=3; x.lineJoin='round'; x.beginPath();
+  for(var i=0;i<pts.length;i++){
+    var vx=pts[i][0]; if(vx>shown) break;
+    if(i===0) x.moveTo(X(vx),Y(pts[i][1])); else x.lineTo(X(vx),Y(pts[i][1]));
+  }
+  if(shown<6){
+    var i0=Math.floor(shown), i1=Math.min(i0+1,6), fr=shown-i0;
+    var vy=pts[i0][1]+(pts[i1][1]-pts[i0][1])*fr;
+    x.lineTo(X(shown),Y(vy));
+  }
+  x.stroke(); x.restore();
+  for(var j=0;j<pts.length;j++){
+    if(pts[j][0]>shown) continue;
+    x.fillStyle=bg; x.strokeStyle=blue7; x.lineWidth=2.4;
+    x.beginPath(); x.arc(X(pts[j][0]),Y(pts[j][1]),4.2,0,7); x.fill(); x.stroke();
+  }
+  if(p>=1){
+    x.fillStyle=blue7; rr(x,X(6)-62,Y(93)-34,58,22,6); x.fill();
+    txt(x,'93%',X(6)-33,Y(93)-23,12.5,700,'#fff','center');
+  }
+
+  var ba=ease((t-1500)/700);
+  if(ba>0){
+    x.save(); x.globalAlpha=ba;
+    var by=Y(21), gx0=X(2.1), gx1=X(3.7), gx2=X(5.35);
+    function arrow(a,b){
+      x.strokeStyle=cv('--ink-3'); x.lineWidth=1.2;
+      x.beginPath(); x.moveTo(a,by); x.lineTo(b,by); x.stroke();
+      x.fillStyle=cv('--ink-3');
+      x.beginPath(); x.moveTo(b,by); x.lineTo(b-6,by-3.5); x.lineTo(b-6,by+3.5);
+      x.closePath(); x.fill();
+    }
+    brain(x,gx0,by,16,0.1,0.9,cv('--ink-3'),true);
+    arrow(gx0+26,gx1-26);
+    brain(x,gx1,by,16,1,0,blue7,false);
+    arrow(gx1+26,gx2-48);
+    x.fillStyle=cv('--g-blue-050'); x.strokeStyle=blue7; x.lineWidth=1.4;
+    rr(x,gx2-46,by-14,92,28,14); x.fill(); x.stroke();
+    txt(x,'ADK Agent',gx2,by,11.5,700,blue7,'center');
+    txt(x,'Hybrid Search seeds the graph — and the ADK agent cites every story',
+        (gx0+gx2)/2,by+32,10.5,700,ink2,'center');
+    x.restore();
+  }
+  txt(x,'ACCURACY PROGRESSION ACROSS PIPELINE STAGES · VERIFIED ON MULTI-HOP ALIAS & MOTIVE QUESTIONS',
+      L-30,14,10.5,700,ink2,'left');
+  return t<2300;
+}
+
+/* ---------- animation driver ---------- */
+var DRAW=[draw1,draw2,draw3,draw4,draw5];
+var raf=null, start=0, cur=0;
+var STILL=/[?&]still=1/.test(location.search);
+function loop(ts){
+  if(!start) start=ts;
+  var more=false;
+  try{ more=DRAW[cur](STILL?99999:(ts-start)); }catch(e){}
+  if(STILL) { raf=null; return; }
+  if(cur===2) more=true;
+  if(more) raf=requestAnimationFrame(loop); else raf=null;
+}
+function animate(){
+  if(raf) cancelAnimationFrame(raf);
+  start=0; raf=requestAnimationFrame(loop);
+}
+
+function reveal(n){
+  if(n===1){
+    var bars=document.querySelectorAll('#gaps .bar');
+    for(var i=0;i<bars.length;i++) bars[i].style.width='0';
+    setTimeout(function(){
+      for(var i=0;i<bars.length;i++)(function(b,d){
+        setTimeout(function(){ b.style.width='100%'; },d);
+      })(bars[i],i*110);
+    },60);
+  }
+  if(n===4){
+    var els=document.querySelectorAll('#s5 [data-count]');
+    for(var k=0;k<els.length;k++)(function(el){
+      var target=+el.getAttribute('data-count'), suf=el.getAttribute('data-suffix')||'', t0=null;
+      if(STILL){ el.textContent=target+suf; return; }
+      function step(ts){ if(!t0)t0=ts; var p=ease((ts-t0)/1100);
+        el.textContent=Math.round(target*p)+suf; if(p<1) requestAnimationFrame(step); }
+      el.textContent='0'+suf; requestAnimationFrame(step);
+    })(els[k]);
+  }
+}
+
+/* ---------- navigation ---------- */
+var slides=document.querySelectorAll('.slide'), N=slides.length, dots=document.getElementById('dots');
+for(var i=0;i<N;i++)(function(i){
+  var d=document.createElement('div'); d.className='dot';
+  d.onclick=function(e){ e.stopPropagation(); go(i); }; dots.appendChild(d);
+})(i);
+function go(n){
+  cur=Math.max(0,Math.min(N-1,n));
+  for(var i=0;i<N;i++) slides[i].classList.toggle('active',i===cur);
+  var ds=dots.children; for(var j=0;j<ds.length;j++) ds[j].classList.toggle('on',j===cur);
+  document.getElementById('meta').textContent='Sherlock Knowledge Layer · '+(cur+1)+' / '+N;
+  animate(); reveal(cur);
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { e.preventDefault(); go(cur+1); }
+  else if(e.key==='ArrowLeft'||e.key==='PageUp') { e.preventDefault(); go(cur-1); }
+  else if(e.key==='Home') go(0); else if(e.key==='End') go(N-1);
+  else if(e.key>='1'&&e.key<='5') go(+e.key-1);
+  else if(e.key.toLowerCase()==='d'||e.key.toLowerCase()==='t') toggleTheme();
+});
+document.body.addEventListener('click',function(e){
+  if(e.target.closest('#chrome')) return;
+  go(cur + (e.clientX < window.innerWidth*0.25 ? -1 : 1));
+});
+
+function toggleTheme(){
+  document.body.classList.toggle('dark');
+  document.getElementById('themeBtn').textContent=document.body.classList.contains('dark')?'Light':'Dark';
+  animate();
+}
+document.getElementById('themeBtn').onclick=function(e){ e.stopPropagation(); toggleTheme(); };
+document.getElementById('prevBtn').onclick=function(e){ e.stopPropagation(); go(cur-1); };
+document.getElementById('nextBtn').onclick=function(e){ e.stopPropagation(); go(cur+1); };
+if(STILL) document.body.classList.add('export');
+
+function fit(){
+  var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+  document.getElementById('stage').style.transform='scale('+s+')';
+}
+window.addEventListener('resize',function(){ try{ fit(); }catch(e){} });
+window.addEventListener('hashchange',function(){ go((+location.hash.replace('#','')||1)-1); });
+try{ fit(); }catch(e){}
+try{ go((+location.hash.replace('#','')||1)-1); }
+catch(e){ document.documentElement.className=''; }
 })();
 </script>
 </body>

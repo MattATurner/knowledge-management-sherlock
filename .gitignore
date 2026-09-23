@@ -1,0 +1,6 @@
+virtualenv/
+__pycache__/
+*.pyc
+.adk/
+.env
+/tmp/

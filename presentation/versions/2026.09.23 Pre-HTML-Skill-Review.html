@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>From Documents to Decisions — Knowledge Management on Google Cloud</title>
+<style>
+:root{
+  --blue:#4285F4; --red:#EA4335; --yellow:#FBBC04; --green:#34A853;
+  --ink:#202124; --ink2:#3c4043; --grey:#5f6368; --line:#dadce0; --bg:#ffffff;
+  --soft:#f8f9fa; --soft2:#f1f3f4;
+  --radius:12px;
+  --font:"Google Sans","Product Sans",Roboto,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font); color:var(--ink); background:var(--bg);
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+.slide .notes{display:none !important}
+#app{display:flex;flex-direction:column;height:100%;position:relative}
+#banner{height:6px;display:flex;flex:0 0 auto}
+#banner i{flex:1}
+#banner i:nth-child(1){background:var(--blue)}
+#banner i:nth-child(2){background:var(--red)}
+#banner i:nth-child(3){background:var(--yellow)}
+#banner i:nth-child(4){background:var(--green)}
+
+#topbar{
+  height:48px;flex:0 0 auto;display:flex;align-items:center;gap:14px;
+  padding:0 22px;border-bottom:1px solid var(--line);background:#fff;
+}
+#brand{display:flex;align-items:center;gap:9px;font-weight:600;font-size:13.5px;letter-spacing:.2px;white-space:nowrap}
+#dots{display:flex;gap:4px}
+#dots span{width:7px;height:7px;border-radius:50%}
+#dots span:nth-child(1){background:var(--blue)}
+#dots span:nth-child(2){background:var(--red)}
+#dots span:nth-child(3){background:var(--yellow)}
+#dots span:nth-child(4){background:var(--green)}
+#sectionTag{
+  font-size:11px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;
+  padding:4px 10px;border-radius:20px;background:var(--soft2);color:var(--grey);white-space:nowrap;
+}
+#topbar .spacer{flex:1}
+.tbtn{
+  border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;
+  font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);
+  padding:6px 11px;transition:.15s;white-space:nowrap;
+}
+.tbtn:hover{background:var(--soft);border-color:#c6cacd}
+.tbtn.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+#counter{font-size:12.5px;color:var(--grey);font-variant-numeric:tabular-nums;min-width:56px;text-align:right}
+#progress{height:3px;background:var(--soft2);flex:0 0 auto}
+#progress div{height:100%;width:0;background:var(--blue);transition:width .3s ease}
+
+#stage{flex:1;position:relative;overflow:hidden}
+.slide{
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  padding:42px 54px 78px;opacity:0;pointer-events:none;
+  transform:translateY(10px);transition:opacity .28s ease,transform .28s ease;
+}
+.slide.active{opacity:1;pointer-events:auto;transform:none}
+.wrap{max-width:1160px;margin:0 auto}
+
+.kicker{font-size:11.5px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--blue);margin-bottom:9px}
+.kicker.red{color:var(--red)} .kicker.yellow{color:#b8860b} .kicker.green{color:var(--green)}
+h1{font-size:clamp(28px,3.4vw,42px);font-weight:700;line-height:1.14;letter-spacing:-.7px}
+h2{font-size:clamp(23px,2.5vw,31px);font-weight:600;line-height:1.2;letter-spacing:-.4px;margin-bottom:8px}
+h3{font-size:16px;font-weight:600;margin-bottom:6px;line-height:1.3}
+p{font-size:15px;line-height:1.6;color:var(--ink2)}
+.lede{font-size:17.5px;line-height:1.55;color:var(--grey);max-width:880px;margin-top:10px}
+code{font-family:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:var(--soft2);padding:2px 6px;border-radius:4px;color:#174ea6}
+.mt{margin-top:24px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.card{border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card.blue{border-top:4px solid var(--blue)}
+.card.red{border-top:4px solid var(--red)}
+.card.yellow{border-top:4px solid var(--yellow)}
+.card.green{border-top:4px solid var(--green)}
+.list{list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.list li{font-size:14px;color:var(--ink2);padding-left:16px;position:relative;line-height:1.5}
+.list li::before{content:"•";color:var(--blue);font-weight:700;position:absolute;left:0}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:#e8f0fe;color:#1a73e8;margin-bottom:8px}
+
+#notesDrawer{
+  position:absolute;left:0;right:0;bottom:0;background:#202124;color:#e8eaed;
+  padding:16px 28px;font-size:13.5px;line-height:1.55;transform:translateY(100%);
+  transition:transform .25s ease;z-index:20;border-top:3px solid var(--blue);
+}
+#notesDrawer.open{transform:translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="banner"><i></i><i></i><i></i><i></i></div>
+  <div id="topbar">
+    <div id="brand">
+      <div id="dots"><span></span><span></span><span></span><span></span></div>
+      <span>From Documents to Decisions · Technical Reference Deck</span>
+    </div>
+    <span id="sectionTag">Sherlock Reference Architecture</span>
+    <div class="spacer"></div>
+    <button class="tbtn" id="notesBtn">Speaker Notes (N)</button>
+    <button class="tbtn" id="prevBtn">&#8592; Prev</button>
+    <button class="tbtn" id="nextBtn">Next &#8594;</button>
+    <span id="counter">1 / 5</span>
+  </div>
+  <div id="progress"><div id="pbar"></div></div>
+
+  <div id="stage">
+    <!-- Slide 1: Overview -->
+    <section class="slide active" data-tag="Overview">
+      <div class="wrap">
+        <div class="kicker">Slide 1 · Reference Architecture Overview</div>
+        <h1>From Documents to Decisions: The <code>sherlock</code> Knowledge Layer</h1>
+        <p class="lede">
+          Using the complete 60-story Sherlock Holmes canon as a proving ground for enterprise unstructured documents,
+          entity resolution, <b>BigQuery Hybrid Search</b>, <b>BigQuery Graph</b>, and <b>BigQuery Knowledge Catalog</b>.
+        </p>
+        <div class="grid3 mt">
+          <div class="card blue">
+            <span class="badge">1 · Understand</span>
+            <h3>60 Stories &rarr; Governed Passages</h3>
+            <ul class="list">
+              <li><b>Source</b>: 4 novels + 56 short stories split into 60 canonical PDFs (<code>holmes/upload/</code>).</li>
+              <li><b>Parsing</b>: Layout-aware chunking via <code>AI.PARSE_DOCUMENT</code> &amp; Document AI into <code>2_book_passages</code>.</li>
+              <li><b>Indexing</b>: Dense vector embeddings + full-text <code>SEARCH INDEX</code> (<code>idx_passage_content_search</code>).</li>
+            </ul>
+          </div>
+          <div class="card yellow">
+            <span class="badge">2 · Connect</span>
+            <h3>Entity Resolution &amp; Property Graph</h3>
+            <ul class="list">
+              <li><b>Adjudication</b>: Candidate pairs scored and judged in <code>5_er_judged_pairs</code> (retaining rejected pairs for audit).</li>
+              <li><b>Golden Records</b>: Unifies aliases (e.g., <i>Sigerson</i>, <i>Altamont</i> &rarr; <i>Sherlock Holmes</i>) in <code>6_characters</code>.</li>
+              <li><b>BigQuery Graph</b>: ISO GQL property graph <code>sherlock.story_graph</code> connecting Characters, Events, Locations &amp; Stories.</li>
+            </ul>
+          </div>
+          <div class="card green">
+            <span class="badge">3 · Serve</span>
+            <h3>Hybrid GraphRAG &amp; ADK Agent</h3>
+            <ul class="list">
+              <li><b>Hybrid Retrieval</b>: Reciprocal Rank Fusion over <code>VECTOR_SEARCH</code> + full-text <code>SEARCH</code> in <code>graphrag_answer</code>.</li>
+              <li><b>Knowledge Catalog</b>: 12 business glossary terms linked directly to physical BigQuery columns.</li>
+              <li><b>ADK Agent</b>: <code>sherlock_investigator</code> with 5 specialized tools for narrative, identity, catalog &amp; governance audits.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Welcome to the technical companion deck for the Sherlock Knowledge Management reference architecture (`all-things-knowledge-mgmt.sherlock`). Every literary challenge in the 60-story canon maps directly to an enterprise MDM and RAG problem.
+      </div>
+    </section>
+
+    <!-- Slide 2: Pipeline Lineage -->
+    <section class="slide" data-tag="Pipeline Stages 0–7">
+      <div class="wrap">
+        <div class="kicker red">Slide 2 · End-to-End BigQuery Data Lineage</div>
+        <h2>Seven Governed Stages in a Single BigQuery Dataset</h2>
+        <p class="lede">No external vector database or separate graph cluster required — every stage lives in <code>all-things-knowledge-mgmt.sherlock</code>.</p>
+        <div class="grid2 mt">
+          <div class="card">
+            <h3>Stages 0–4: Ingestion &amp; Raw Extraction</h3>
+            <ul class="list">
+              <li><code>0_books_raw</code> &amp; <code>1_books_processed_docai_raw</code>: Cloud Storage Object Table over the 60 story PDFs.</li>
+              <li><code>2_book_passages</code>: Chapter- and chunk-indexed text passages with full-text <code>SEARCH INDEX</code>.</li>
+              <li><code>3_extracted_graph_raw</code>: Gemini structured JSON extraction of character mentions, locations, events, and raw relationships.</li>
+              <li><code>4_stg_*</code>: Unresolved staging tables (<code>4_stg_character_mentions</code>, <code>4_stg_events</code>, <code>4_stg_participated_in</code>).</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Stages 5–7: Entity Resolution, Graph &amp; Hybrid Index</h3>
+            <ul class="list">
+              <li><code>5_er_candidate_pairs</code> &amp; <code>5_er_judged_pairs</code>: Vector candidate blocking + LLM match adjudication (<code>is_same_entity</code>).</li>
+              <li><code>6_characters</code>, <code>6_locations</code>, <code>6_events_resolved</code>: Golden records + crosswalk maps (<code>6_char_resolution_map</code>).</li>
+              <li><code>6_char_relationships_governed</code>: Standardizes raw relationship verbs into <b>Knowledge Catalog</b> controlled categories via <code>AI.CLASSIFY</code>.</li>
+              <li><code>7_passage_embeddings</code> &amp; <code>7_passage_entities</code>: Hybrid vector + full-text index linked back to canonical entity IDs.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Walk through `sql/01_schema_and_property_graph.sql`. Highlight how keeping Stages 0 through 7 in BigQuery preserves full provenance from a resolved graph edge all the way back to the exact PDF passage.
+      </div>
+    </section>
+
+    <!-- Slide 3: Hybrid Search + GraphRAG -->
+    <section class="slide" data-tag="Hybrid GraphRAG">
+      <div class="wrap">
+        <div class="kicker yellow">Slide 3 · Why Hybrid Search + BigQuery Graph Matters</div>
+        <h2>Closing the Proper-Noun Blind Spot in <code>graphrag_answer</code></h2>
+        <p class="lede">
+          In GraphRAG, initial passage retrieval seeds the graph traversal. Pure cosine vector search misses rare proper nouns and aliases;
+          <b>BigQuery Hybrid Search</b> (Vector + Full-Text RRF) guarantees exact entity recall before expanding <code>GRAPH_TABLE</code>.
+        </p>
+        <div class="grid3 mt">
+          <div class="card blue">
+            <h3>Step 1–2: Hybrid RRF Retrieval</h3>
+            <p style="margin-top:6px;font-size:13.5px">
+              Combines dense semantic similarity (<code>VECTOR_SEARCH</code>) with sparse lexical matching (<code>SEARCH(content, token)</code>)
+              using Reciprocal Rank Fusion:
+              <br/><br/>
+              <code>rrf = 1/(60 + sem_rank) + 1/(60 + lex_rank)</code>
+            </p>
+          </div>
+          <div class="card yellow">
+            <h3>Step 3: 2-Tier <code>GRAPH_TABLE</code> Expansion</h3>
+            <p style="margin-top:6px;font-size:13.5px">
+              Seeds <code>hit_chars</code> and <code>hit_events</code> from the top fused passages, then traverses <code>sherlock.story_graph</code>
+              for Tier-1 passage events, Tier-2 cross-story background events, <code>RELATED_TO</code> edges, and resolved aliases.
+            </p>
+          </div>
+          <div class="card green">
+            <h3>Step 4: Grounded Synthesis</h3>
+            <p style="margin-top:6px;font-size:13.5px">
+              <code>ML.GENERATE_TEXT</code> synthesizes the final answer strictly from tiered graph evidence and retrieved passages,
+              annotating every citation with both the story/chapter and retrieval mode (<code>hybrid</code>, <code>semantic</code>, or <code>lexical</code>).
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        See `sql/02_graphrag_answer_hybrid.sql` and `sql/03_agentic_era_pipeline.sql`. When a user asks about an alias like "Sigerson" or "Vandeleur", full-text search locks onto the exact token while vector search captures the narrative theme.
+      </div>
+    </section>
+
+    <!-- Slide 4: BigQuery Knowledge Catalog -->
+    <section class="slide" data-tag="Knowledge Catalog">
+      <div class="wrap">
+        <div class="kicker">Slide 4 · Semantic Governance with BigQuery Knowledge Catalog</div>
+        <h2>12 Business Glossary Terms Linked Directly to Physical Schema</h2>
+        <p class="lede">
+          Provisioned via <code>createAll.sh</code> and linked to table/column entries via <code>attachTerms.sh</code>, then queried live at runtime by <code>sherlock_investigator</code>.
+        </p>
+        <div class="grid3 mt">
+          <div class="card blue">
+            <h3>Entity Resolution (5 Terms)</h3>
+            <ul class="list">
+              <li><b>Mention</b> &rarr; <code>4_stg_character_mentions.name</code></li>
+              <li><b>Alias</b> &rarr; <code>6_characters.aliases</code>, <code>6_locations.aliases</code></li>
+              <li><b>Canonical Entity</b> &rarr; <code>6_characters.char_id</code>, <code>6_locations.loc_id</code></li>
+              <li><b>Resolution Map</b> &rarr; <code>6_char_resolution_map</code></li>
+              <li><b>Match Adjudication</b> &rarr; <code>5_er_judged_pairs.is_same_entity</code></li>
+            </ul>
+          </div>
+          <div class="card red">
+            <h3>Provenance (3 Terms)</h3>
+            <ul class="list">
+              <li><b>Source Document</b> &rarr; <code>1_books_processed</code>, <code>2_book_passages.passage_id</code></li>
+              <li><b>Narrator / Source of Record</b> &rarr; <code>story_metadata.narrator</code> (Watson vs. Holmes vs. 3rd-person)</li>
+              <li><b>Record Date vs Event Date</b> &rarr; <code>publication_year</code> vs. <code>in_story_year</code></li>
+            </ul>
+          </div>
+          <div class="card green">
+            <h3>Graph Model (4 Terms)</h3>
+            <ul class="list">
+              <li><b>Event</b> &rarr; <code>6_events_resolved</code></li>
+              <li><b>Participant Role</b> &rarr; <code>6_participated_in.role</code></li>
+              <li><b>Relationship Type</b> &rarr; <code>6_char_relationships_governed</code></li>
+              <li><b>Location Hierarchy</b> &rarr; <code>6_located_in</code> (221B &rarr; Baker St &rarr; London)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Unlike static prompt engineering, `sherlock_agent/agent.py` includes `lookup_knowledge_catalog`, `audit_entity_resolution`, and `inspect_provenance_and_hierarchy` so the agent inspects Knowledge Catalog definitions and governance tables live.
+      </div>
+    </section>
+
+    <!-- Slide 5: 90-Day Path -->
+    <section class="slide" data-tag="90-Day Rollout">
+      <div class="wrap">
+        <div class="kicker green">Slide 5 · The Path to Production</div>
+        <h2>Ninety days. One domain. A reusable platform.</h2>
+        <p class="lede">Establish the governed knowledge layer once; compound across every subsequent business domain.</p>
+        <div class="grid3 mt">
+          <div class="card blue">
+            <span class="badge">Days 0–30</span>
+            <h3>Frame &amp; Prove</h3>
+            <ul class="list">
+              <li>Pick <b>one high-value domain</b> and agree on a 20-question golden evaluation set.</li>
+              <li>Ingest unstructured documents via <code>AI.PARSE_DOCUMENT</code> and configure autonomous embeddings.</li>
+              <li>Baseline naive retrieval vs. <b>BigQuery Hybrid Search</b> (<code>AI.SEARCH</code>).</li>
+            </ul>
+          </div>
+          <div class="card yellow">
+            <span class="badge">Days 31–60</span>
+            <h3>Connect the Brain</h3>
+            <ul class="list">
+              <li>Build entity-resolution candidate blocking and adjudication (<code>5_er_judged_pairs</code>).</li>
+              <li>Define the domain property graph (<code>CREATE PROPERTY GRAPH</code>) in BigQuery.</li>
+              <li>Publish controlled vocabularies and provenance terms in <b>BigQuery Knowledge Catalog</b>.</li>
+            </ul>
+          </div>
+          <div class="card green">
+            <span class="badge">Days 61–90</span>
+            <h3>Serve &amp; Scale</h3>
+            <ul class="list">
+              <li>Deploy ADK agent over the Hybrid GraphRAG procedure and live Knowledge Catalog tools.</li>
+              <li>Enforce caller IAM / row-level security at retrieval and verify &gt;90% groundedness on the golden set.</li>
+              <li>Onboard Domain #2 reusing the existing pipeline, governance model, and eval harness.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        This completes the 90-day path (`Days 0–30`, `Days 31–60`, `Days 61–90`) that transitions a customer from a 2-hour discovery workshop to a reusable, governed Agentic Data Foundation.
+      </div>
+    </section>
+  </div>
+
+  <div id="notesDrawer"></div>
+</div>
+
+<script>
+(function(){
+  var slides = document.querySelectorAll('.slide');
+  var total = slides.length;
+  var idx = 0;
+  var counter = document.getElementById('counter');
+  var pbar = document.getElementById('pbar');
+  var tag = document.getElementById('sectionTag');
+  var drawer = document.getElementById('notesDrawer');
+  var notesBtn = document.getElementById('notesBtn');
+
+  function render() {
+    for (var i = 0; i < total; i++) {
+      slides[i].classList.toggle('active', i === idx);
+    }
+    counter.textContent = (idx + 1) + ' / ' + total;
+    pbar.style.width = (((idx + 1) / total) * 100) + '%';
+    tag.textContent = slides[idx].getAttribute('data-tag') || 'Sherlock Reference Architecture';
+    var n = slides[idx].querySelector('.notes');
+    drawer.innerHTML = '<strong>Speaker Notes:</strong> ' + (n ? n.innerHTML : '');
+  }
+
+  function go(delta) {
+    idx = Math.max(0, Math.min(total - 1, idx + delta));
+    render();
+  }
+
+  document.getElementById('prevBtn').onclick = function() { go(-1); };
+  document.getElementById('nextBtn').onclick = function() { go(1); };
+  notesBtn.onclick = function() {
+    drawer.classList.toggle('open');
+    notesBtn.classList.toggle('on', drawer.classList.contains('open'));
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+    else if (e.key.toLowerCase() === 'n') { notesBtn.click(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
